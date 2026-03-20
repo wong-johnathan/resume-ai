@@ -63,13 +63,16 @@ export interface Profile {
   certifications: Certification[];
 }
 
+import type { ResumeContent } from './resumeContent';
+export type { ResumeContent };
+
 export interface Resume {
   id: string;
   userId: string;
   title: string;
-  templateId: 'modern' | 'classic' | 'minimal' | 'executive';
+  templateId: string;
   status: 'DRAFT' | 'FINAL' | 'ARCHIVED';
-  contentJson: unknown;
+  contentJson: ResumeContent;
   tailoredFor?: string | null;
   coverLetter?: string | null;
   createdAt: string;
