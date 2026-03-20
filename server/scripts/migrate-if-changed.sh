@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 # Run prisma migrate dev only when schema.prisma has changed.
 
+# Load .dev.env if present
+DEV_ENV="$(dirname "$0")/../.dev.env"
+if [ -f "$DEV_ENV" ]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$DEV_ENV"
+  set +a
+fi
+
 SCHEMA="$(dirname "$0")/../prisma/schema.prisma"
 HASH_FILE="$(dirname "$0")/../prisma/.schema.hash"
 

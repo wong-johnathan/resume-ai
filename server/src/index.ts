@@ -1,4 +1,6 @@
-import 'dotenv/config';
+import { existsSync } from 'fs';
+import dotenv from 'dotenv';
+dotenv.config({ path: existsSync('.dev.env') ? '.dev.env' : '.env' });
 import { execSync } from 'child_process';
 import { createApp } from './app';
 import { env } from './config/env';

@@ -21,6 +21,17 @@ const PAGE_CSS = `
     @page { size: A4; margin: 0; }
     html { width: 210mm; }
     body { width: 210mm; max-width: 210mm; overflow-x: hidden; }
+    /* Prevent section titles from being orphaned at page bottom */
+    .section-title { break-after: avoid; page-break-after: avoid; }
+    /* Keep named entry containers intact across pages */
+    .card, .tl-item, .edu-row { break-inside: avoid; page-break-inside: avoid; }
+    /* Keep inline-style entry containers intact (used by most templates) */
+    div:has(> .exp-header),
+    div:has(> .exp-desc),
+    div:has(> .exp-company) {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
   </style>
 `;
 
