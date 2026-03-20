@@ -237,8 +237,8 @@ export function ProfilePage() {
       <Section title="Certifications" expanded={expandedSections.certs} onToggle={() => toggleSection('certs')}>
         {profile?.certifications.map((cert) => (
           <CertItem key={cert.id} cert={cert}
-            onUpdate={(id, data) => updateCertification(id, data).then(() => getProfile().then(setProfile)).catch(() => addToast('Error', 'error'))}
-            onDelete={(id) => deleteCertification(id).then(() => getProfile().then(setProfile)).catch(() => {})}
+            onUpdate={(id: string, data: Partial<Certification>) => updateCertification(id, data).then(() => getProfile().then(setProfile)).catch(() => addToast('Error', 'error'))}
+            onDelete={(id: string) => deleteCertification(id).then(() => getProfile().then(setProfile)).catch(() => {})}
           />
         ))}
         <Button variant="secondary" size="sm" onClick={() => {
