@@ -51,13 +51,4 @@ router.get(
   (_req, res) => res.redirect(`${env.CLIENT_URL}/dashboard`)
 );
 
-// ─── LinkedIn ────────────────────────────────────────────────────────────────
-
-router.get('/linkedin', passport.authenticate('linkedin'));
-router.get(
-  '/linkedin/callback',
-  passport.authenticate('linkedin', { failureRedirect: `${env.CLIENT_URL}/login?error=auth` }),
-  (_req, res) => res.redirect(`${env.CLIENT_URL}/dashboard`)
-);
-
 export default router;

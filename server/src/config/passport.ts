@@ -1,8 +1,6 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as GitHubStrategy } from 'passport-github2';
-// @ts-ignore — no types package
-import { Strategy as LinkedInStrategy } from 'passport-linkedin-oauth2';
 import { prisma } from './prisma';
 import { env } from './env';
 
@@ -64,25 +62,5 @@ passport.use(
     }
   )
 );
-
-// passport.use(
-//   new LinkedInStrategy(
-//     {
-//       clientID: env.LINKEDIN_CLIENT_ID,
-//       clientSecret: env.LINKEDIN_CLIENT_SECRET,
-//       callbackURL: env.LINKEDIN_CALLBACK_URL,
-//       scope: ['r_emailaddress', 'r_liteprofile'],
-//     },
-//     async (_accessToken: string, _refreshToken: string, profile: any, done: Function) => {
-//       try {
-//         const email = profile.emails?.[0]?.value ?? `${profile.id}@linkedin.com`;
-//         const user = await upsertUser('linkedin', profile.id, email, profile.displayName, profile.photos?.[0]?.value);
-//         done(null, user);
-//       } catch (err) {
-//         done(err as Error);
-//       }
-//     }
-//   )
-// );
 
 export default passport;
