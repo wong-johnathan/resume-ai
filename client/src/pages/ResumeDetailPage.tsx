@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Download, ArrowLeft, FileText, RefreshCw } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Download, ArrowLeft, FileText, RefreshCw, Pencil } from 'lucide-react';
 import { getResume, getPdfUrl, getPreviewUrl, updateResume } from '../api/resumes';
 import { Resume } from '../types';
 import { Button } from '../components/ui/Button';
@@ -9,6 +9,7 @@ import { useAppStore } from '../store/useAppStore';
 
 export function ResumeDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { addToast } = useAppStore();
   const [resume, setResume] = useState<Resume | null>(null);
   const [status, setStatus] = useState<Resume['status']>('DRAFT');
@@ -58,6 +59,10 @@ export function ResumeDetailPage() {
           onChange={(e) => handleStatusChange(e.target.value as Resume['status'])}
           className="w-32 flex-shrink-0"
         />
+
+        <Button variant="secondary" className="flex-shrink-0" onClick={() => navigate(`/resumes/${resume.id}/edit`)}>
+          <Pencil size={15} /> Edit Content
+        </Button>
 
         <a href={getPdfUrl(resume.id)} download={`${resume.title}.pdf`} className="flex-shrink-0">
           <Button>

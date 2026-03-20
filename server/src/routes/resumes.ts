@@ -21,6 +21,7 @@ const updateResumeSchema = z.object({
   status: z.enum(['DRAFT', 'FINAL', 'ARCHIVED']).optional(),
   templateId: z.enum(ALL_TEMPLATE_IDS).optional(),
   coverLetter: z.string().optional(),
+  contentJson: z.record(z.string(), z.unknown()).optional(),
 });
 
 router.get('/', async (req, res, next) => {
@@ -92,6 +93,16 @@ router.delete('/:id', async (req, res, next) => {
   try {
     await prisma.resume.deleteMany({ where: { id: req.params.id, userId: getUser(req).id } });
     res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+router.post('/:id/render', validateBody(z.object({ contentJson: z.record(z.string(), z.unknown()) })), async (req, res, next) => {
+  try {
+    const resume = await prisma.resume.findFirst({ where: { id: req.params.id as string, userId: getUser(req).id } });
+    if (!resume) return res.status(404).send('<p>Resume not found</p>');
+    const html = renderTemplate(resume.templateId, req.body.contentJson as any);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
   } catch (err) { next(err); }
 });
 
