@@ -18,9 +18,11 @@ COPY prisma ./prisma/
 RUN npm install
 RUN npx prisma generate
 
-COPY tsconfig.json nodemon.json ./
+COPY tsconfig.json ./
 COPY src ./src
+
+RUN npm run build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push && npm run dev"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
