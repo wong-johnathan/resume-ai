@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?
+  avatarUrl   String?
+  provider    String
+  providerId  String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profile         Profile?
+  resumes         Resume[]
+  jobApplications JobApplication[]
+  jobStatuses     UserJobStatus[]
+
+  @@unique([provider, providerId])
+}
+
+// ─── PROFILE ─────────────────────────────────────────────────────────────────
+
+model Profile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName    String
+  lastName     String
+  email        String
+  phone        String?
+  location     String?
+  linkedinUrl  String?
+  githubUrl    String?
+  portfolioUrl String?
+  summary      String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  experiences    Experience[]
+  educations     Education[]
+  skills         Skill[]
+  certifications Certification[]
+}
+
+model Experience {
+  id          String    @id @default(cuid())
+  profileId   String
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  company     String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean   @default(false)
+  description String    @db.Text
+  order       Int       @default(0)
+}
+
+model Education {
+  id           String    @id @default(cuid())
+  profileId    String
+  profile      Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  institution  String
+  degree       String
+  fieldOfStudy String?
+  startDate    DateTime
+  endDate      DateTime?
+  gpa          String?
+  order        Int       @default(0)
+}
+
+model Skill {
+  id        String     @id @default(cuid())
+  profileId String
+  profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name      String
+  level     SkillLevel @default(INTERMEDIATE)
+  category  String?
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Certification {
+  id            String    @id @default(cuid())
+  profileId     String
+  profile       Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name          String
+  issuer        String
+  issueDate     DateTime?
+  expiryDate    DateTime?
+  credentialUrl String?
+}
+
+// ─── RESUME ──────────────────────────────────────────────────────────────────
+
+model Resume {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  templateId  String
+  status      ResumeStatus @default(DRAFT)
+  contentJson Json
+  tailoredFor String?
+  coverLetter String?      @db.Text
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  jobApplications JobApplication[]
+}
+
+enum ResumeStatus {
+  DRAFT
+  FINAL
+  ARCHIVED
+}
+
+// ─── JOB APPLICATION ─────────────────────────────────────────────────────────
+
+model JobApplication {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     String
+  jobTitle    String
+  jobUrl      String?
+  description String?   @db.Text
+  status      String    @default("SAVED")
+  appliedAt   DateTime?
+  resumeId    String?
+  resume      Resume?   @relation(fields: [resumeId], references: [id])
+  notes       String?   @db.Text
+  coverLetter String?   @db.Text
+  salary      String?
+  location    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  aiAmendments AiAmendment[]
+}
+
+model AiAmendment {
+  id               String          @id @default(cuid())
+  jobApplicationId String
+  jobApplication   JobApplication  @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
+  type             AiAmendmentType
+  resumeId         String?
+  coverLetterText  String?         @db.Text
+  createdAt        DateTime        @default(now())
+}
+
+enum AiAmendmentType {
+  RESUME_TAILOR
+  COVER_LETTER
+}
+
+model UserJobStatus {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label  String
+  color  String @default("#6b7280")
+  order  Int    @default(0)
+
+  @@unique([userId, label])
+}
