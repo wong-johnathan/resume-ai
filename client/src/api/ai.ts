@@ -14,8 +14,8 @@ export const crawlUrl = (url: string) =>
 export const analyzeFit = (jobDescription: string, resumeId?: string) =>
   api.post<FitAnalysis>('/ai/analyze-fit', { jobDescription, resumeId }).then((r) => r.data);
 
-export const tailorResume = (resumeId: string, jobDescription: string, jobId?: string) =>
-  api.post<Resume>('/ai/tailor', { resumeId, jobDescription, jobId }).then((r) => r.data);
+export const tailorResume = (templateId: string, jobDescription: string, jobId?: string) =>
+  api.post<Resume>('/ai/tailor', { templateId, jobDescription, jobId }).then((r) => r.data);
 
 export const improveSummary = (currentSummary: string, targetRole: string) =>
   api.post<{ summary: string }>('/ai/improve-summary', { currentSummary, targetRole }).then((r) => r.data);

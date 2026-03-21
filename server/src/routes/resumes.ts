@@ -5,6 +5,7 @@ import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
 import { generatePdf } from '../services/pdf';
 import { renderTemplate } from '../services/templates';
+import { profileToResumeContent } from '../utils/profileToContent';
 
 const router = Router();
 router.use(requireAuth);
@@ -42,30 +43,14 @@ router.post('/', validateBody(createResumeSchema), async (req, res, next) => {
     });
     if (!profile) return res.status(404).json({ error: 'Complete your profile first' });
 
-    const contentJson = {
-      personalInfo: {
-        firstName: profile.firstName,
-        lastName: profile.lastName,
-        email: profile.email,
-        phone: profile.phone,
-        location: profile.location,
-        linkedinUrl: profile.linkedinUrl,
-        githubUrl: profile.githubUrl,
-        portfolioUrl: profile.portfolioUrl,
-      },
-      summary: profile.summary ?? '',
-      experiences: profile.experiences,
-      educations: profile.educations,
-      skills: profile.skills,
-      certifications: profile.certifications,
-    };
+    const contentJson = profileToResumeContent(profile);
 
     const resume = await prisma.resume.create({
       data: {
         title: req.body.title,
         templateId: req.body.templateId,
         userId: getUser(req).id,
-        contentJson,
+        contentJson: contentJson as any,
       },
     });
     res.status(201).json(resume);

@@ -5,6 +5,7 @@ import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
 import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit } from '../services/claude';
+import { profileToResumeContent } from '../utils/profileToContent';
 
 const router = Router();
 router.use(requireAuth);
@@ -21,7 +22,7 @@ router.use(aiRateLimit);
 // ─── Tailor resume ───────────────────────────────────────────────────────────
 
 const tailorSchema = z.object({
-  resumeId: z.string(),
+  templateId: z.string(),
   jobDescription: z.string().min(50),
   jobId: z.string().optional(),
 });
@@ -42,20 +43,21 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
       }
     }
 
-    // Only allow tailoring original resumes (not already-tailored clones)
-    const original = await prisma.resume.findFirst({
-      where: { id: req.body.resumeId, userId, tailoredFor: null },
+    // Build resume content from the user's current profile
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
     });
-    if (!original) return res.status(404).json({ error: 'Resume not found' });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
-    const tailoredContent = await tailorResume(original.contentJson as any, req.body.jobDescription);
+    const tailoredContent = await tailorResume(profileToResumeContent(profile), req.body.jobDescription);
 
-    // Create a clone with the tailored content — original is untouched
+    // Create a tailored resume with the selected template
     const clone = await prisma.resume.create({
       data: {
         userId,
-        title: `${original.title} (Tailored)`,
-        templateId: original.templateId,
+        title: `Tailored Resume`,
+        templateId: req.body.templateId,
         contentJson: tailoredContent as any,
         tailoredFor: req.body.jobId ?? 'job',
       },

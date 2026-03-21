@@ -1,25 +1,24 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { getJob, updateJob, linkResume } from '../api/jobs';
+import { getJob, updateJob } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
 import { JobApplication, JobStatus, Resume, AiAmendment, FitAnalysis } from '../types';
-
-const AI_AMENDMENT_LIMIT = 3;
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { useAppStore } from '../store/useAppStore';
-import { getResumes as fetchResumes } from '../api/resumes';
+import { TEMPLATE_OPTIONS } from '../api/templates';
+
+const AI_AMENDMENT_LIMIT = 3;
 
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { addToast } = useAppStore();
   const [job, setJob] = useState<JobApplication | null>(null);
-  const [resumes, setResumes] = useState<Resume[]>([]);
   const [statuses, setStatuses] = useState<JobStatus[]>([]);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<JobApplication>>({});
@@ -38,7 +37,6 @@ export function JobDetailPage() {
   useEffect(() => {
     if (id) {
       getJob(id).then((j) => { setJob(j); setNotes(j.notes ?? ''); setCoverLetter(j.coverLetter ?? ''); }).catch(() => {});
-      fetchResumes().then(setResumes).catch(() => {});
       getJobStatuses().then(setStatuses).catch(() => {});
     }
   }, [id]);
@@ -50,21 +48,11 @@ export function JobDetailPage() {
     addToast('Status updated', 'success');
   };
 
-  const handleLinkResume = async (resumeId: string) => {
-    if (!job) return;
-    await linkResume(job.id, resumeId || null);
-    const updated = await getJob(job.id);
-    setJob(updated);
-    addToast('Resume linked', 'success');
-  };
-
   const handleTailor = async () => {
-    if (!job) return;
-    const sourceId = tailorSourceId || (job.resume && !job.resume.tailoredFor ? job.resumeId! : '');
-    if (!sourceId || !job.description) return;
+    if (!job || !tailorSourceId || !job.description) return;
     setTailoring(true);
     try {
-      await tailorResume(sourceId, job.description, job.id);
+      await tailorResume(tailorSourceId, job.description, job.id);
       const updated = await getJob(job.id);
       setJob(updated);
       setTailorSourceId('');
@@ -262,22 +250,6 @@ export function JobDetailPage() {
               </div>
             )}
 
-            {/* Regular resume dropdown (only shows originals) */}
-            {!job.resume?.tailoredFor && (
-              <>
-                <Select
-                  options={[{ value: '', label: 'None' }, ...resumes.map((r) => ({ value: r.id, label: r.title }))]}
-                  value={job.resumeId ?? ''}
-                  onChange={(e) => handleLinkResume(e.target.value)}
-                />
-                {job.resume && (
-                  <Link to={`/resumes/${job.resume.id}`} className="flex items-center gap-2 mt-2 text-xs text-blue-600 hover:underline">
-                    <FileText size={12} /> View Resume
-                  </Link>
-                )}
-              </>
-            )}
-
             {/* Amendment counter */}
             <div className={`flex items-center justify-between mt-3 pt-3 border-t`}>
               <span className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -295,15 +267,11 @@ export function JobDetailPage() {
                   <p className="text-xs text-red-500 bg-red-50 rounded-lg p-2.5 border border-red-100">
                     AI amendment limit reached for this job. No further AI tailoring is available.
                   </p>
-                ) : resumes.length === 0 ? (
-                  <p className="text-xs text-gray-400">
-                    <Link to="/templates" className="text-blue-500 hover:underline">Create a resume</Link> to tailor it for this job.
-                  </p>
                 ) : (
                   <>
                     <Select
-                      label={job.resume?.tailoredFor ? 'Re-tailor using:' : 'Tailor a resume for this job:'}
-                      options={[{ value: '', label: '— Pick a resume —' }, ...resumes.map((r) => ({ value: r.id, label: r.title }))]}
+                      label={job.resume?.tailoredFor ? 'Re-tailor using template:' : 'Tailor resume for this job:'}
+                      options={[{ value: '', label: '— Pick a template —' }, ...TEMPLATE_OPTIONS]}
                       value={tailorSourceId}
                       onChange={(e) => setTailorSourceId(e.target.value)}
                     />
@@ -312,12 +280,12 @@ export function JobDetailPage() {
                       className="mt-2 w-full"
                       onClick={handleTailor}
                       loading={tailoring}
-                      disabled={!tailorSourceId && !(job.resumeId && !job.resume?.tailoredFor)}
+                      disabled={!tailorSourceId}
                     >
                       <Sparkles size={13} />
                       {job.resume?.tailoredFor ? 'Re-tailor with Claude' : 'Tailor with Claude'}
                     </Button>
-                    <p className="text-[10px] text-gray-400 mt-1">Creates a tailored copy — your original resume stays unchanged.</p>
+                    <p className="text-[10px] text-gray-400 mt-1">Creates a tailored copy from your profile data.</p>
                   </>
                 )}
               </div>

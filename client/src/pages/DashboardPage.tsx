@@ -120,13 +120,13 @@ export function DashboardPage() {
             <h2 className="font-semibold text-gray-900">Quick Actions</h2>
           </div>
           <div className="p-5 space-y-3">
-            <Link to="/resumes" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+            <Link to="/templates" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
               <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Plus size={16} className="text-blue-600" />
               </div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Create new resume</p>
-                <p className="text-xs text-gray-500">Pick a template and generate</p>
+                <p className="text-sm font-medium text-gray-900">Download resume</p>
+                <p className="text-xs text-gray-500">Pick a template and download PDF</p>
               </div>
             </Link>
             <Link to="/jobs" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
