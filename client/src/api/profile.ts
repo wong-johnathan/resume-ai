@@ -28,9 +28,35 @@ export const parsePdf = async (file: File) => {
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const pages = await Promise.all(
     Array.from({ length: pdf.numPages }, (_, i) =>
-      pdf.getPage(i + 1).then((page) => page.getTextContent()).then((content) =>
-        content.items.map((item: any) => item.str).join(' ')
-      )
+      pdf.getPage(i + 1).then((page) => page.getTextContent()).then((content) => {
+        // Group text items by Y coordinate to reconstruct visual lines.
+        // Joining with ' ' loses bullet points — items on the same line share
+        // a Y value (within a small tolerance) and items on different lines don't.
+        const SAME_LINE_THRESHOLD = 3;
+        const lineGroups: Array<{ y: number; items: Array<{ x: number; str: string }> }> = [];
+
+        for (const item of content.items as any[]) {
+          if (!('str' in item) || !item.str) continue;
+          const y: number = item.transform[5];
+          const x: number = item.transform[4];
+          const existing = lineGroups.find((g) => Math.abs(g.y - y) <= SAME_LINE_THRESHOLD);
+          if (existing) {
+            existing.items.push({ x, str: item.str });
+          } else {
+            lineGroups.push({ y, items: [{ x, str: item.str }] });
+          }
+        }
+
+        // PDF Y-axis goes bottom-to-top, so sort descending (top of page first)
+        lineGroups.sort((a, b) => b.y - a.y);
+
+        return lineGroups
+          .map((group) => {
+            group.items.sort((a, b) => a.x - b.x);
+            return group.items.map((i) => i.str).join('');
+          })
+          .join('\n');
+      })
     )
   );
   const text = pages.join('\n\n');

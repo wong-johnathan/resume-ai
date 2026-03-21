@@ -2,6 +2,7 @@ node_modules/
 dist/
 .env
 .env.local
+.dev.env
 .DS_Store
 server/prisma/.schema.hash
 *.log

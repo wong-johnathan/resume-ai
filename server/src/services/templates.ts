@@ -14,8 +14,8 @@ function modernTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#222;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to right,#1e3a5f 200px,#fff 200px);}
-  .sidebar{width:200px;min-width:200px;color:#fff;padding:24px 16px;flex-shrink:0;}
+  .wrap{display:flex;width:100%;}
+  .sidebar{width:200px;min-width:200px;color:#fff;padding:24px 16px;flex-shrink:0;background:#1e3a5f;}
   .main{flex:1;padding:28px 24px;}
   .name{font-size:18pt;font-weight:700;line-height:1.2;margin-bottom:4px;}
   .title-label{font-size:9pt;opacity:.75;margin-bottom:20px;}
@@ -242,9 +242,9 @@ function tealTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#222;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to left,#0d9488 190px,#fff 190px);}
+  .wrap{display:flex;width:100%;}
   .main{flex:1;padding:28px 24px;}
-  .sidebar{width:190px;min-width:190px;color:#fff;padding:28px 16px;flex-shrink:0;}
+  .sidebar{width:190px;min-width:190px;color:#fff;padding:28px 16px;flex-shrink:0;background:#0d9488;}
   .name-block{margin-bottom:20px;}
   h1{font-size:19pt;font-weight:700;line-height:1.2;}
   .section{margin-bottom:18px;}
@@ -317,8 +317,8 @@ function creativeTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#1a1a2e;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to right,#7c3aed 8px,#fff 8px);}
-  .accent{width:8px;min-width:8px;flex-shrink:0;}
+  .wrap{display:flex;width:100%;}
+  .accent{width:8px;min-width:8px;flex-shrink:0;background:#7c3aed;}
   .content{flex:1;padding:28px 36px;}
   .header{margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e5e7eb;}
   h1{font-size:22pt;font-weight:800;letter-spacing:-.02em;}
@@ -517,8 +517,8 @@ function coralTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:9pt;color:#292524;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to right,#fff1ee 195px,#fff 195px);}
-  .sidebar{width:195px;min-width:195px;padding:26px 16px;border-right:3px solid #fb7185;flex-shrink:0;}
+  .wrap{display:flex;width:100%;}
+  .sidebar{width:195px;min-width:195px;padding:26px 16px;border-right:3px solid #fb7185;flex-shrink:0;background:#fff1ee;}
   .main{flex:1;padding:26px 26px;}
   .avatar-block{margin-bottom:16px;}
   .name{font-size:16pt;font-weight:800;color:#e11d48;line-height:1.2;}
@@ -558,8 +558,8 @@ function navyTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#1e293b;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to right,#0f2044 205px,#fff 205px);}
-  .sidebar{width:205px;min-width:205px;color:#fff;padding:28px 18px;flex-shrink:0;}
+  .wrap{display:flex;width:100%;}
+  .sidebar{width:205px;min-width:205px;color:#fff;padding:28px 18px;flex-shrink:0;background:#0f2044;}
   .main{flex:1;padding:28px 28px;}
   .name{font-size:18pt;font-weight:700;line-height:1.2;color:#fbbf24;}
   .gold-rule{width:40px;height:3px;background:#fbbf24;margin:10px 0 16px;}
@@ -668,8 +668,8 @@ function forestTemplate(c: ResumeContent): string {
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:9pt;color:#1c2b1e;margin:0;}
-  .wrap{display:flex;width:100%;min-height:100vh;background:linear-gradient(to right,#1a3a1c 200px,#fff 200px);}
-  .sidebar{width:200px;min-width:200px;color:#d1fae5;padding:28px 16px;flex-shrink:0;}
+  .wrap{display:flex;width:100%;}
+  .sidebar{width:200px;min-width:200px;color:#d1fae5;padding:28px 16px;flex-shrink:0;background:#1a3a1c;}
   .main{flex:1;padding:28px 26px;}
   .name{font-size:17pt;font-weight:700;line-height:1.2;color:#a7f3d0;}
   .sb-label{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6ee7b7;margin:16px 0 6px;}
