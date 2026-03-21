@@ -1,23 +1,47 @@
 # Resume AI
 
-An AI-powered resume builder and job application assistant. Build resumes from a structured profile, choose from multiple templates, export PDFs, track job applications on a Kanban board, and use Claude AI to tailor resumes and generate cover letters for specific job postings.
+An AI-powered resume builder and job application assistant. Build resumes from a structured profile, choose from 20 professionally designed templates, export PDFs, track job applications on a Kanban board, and use Claude AI to tailor resumes and generate cover letters for specific job postings.
 
 ## Features
 
-- **Profile builder** — structured input for experience, education, skills, and certifications
-- **Resume templates** — 4 designs (Modern, Classic, Minimal, Executive) with PDF export via Puppeteer
-- **AI resume tailoring** — Claude rewrites your resume's summary, bullets, and skill order to match a job description (max 3 amendments per job posting)
-- **AI cover letter generation** — SSE-streamed cover letter in your choice of tone (Professional, Conversational, Enthusiastic)
+### Profile & Onboarding
+- **Profile builder** — structured input for work experience, education, skills (with proficiency levels), and certifications
+- **PDF resume import** — upload an existing resume PDF to auto-populate your profile (name, contact info, experiences, education, skills, certifications)
+- **Rich text editing** — TipTap editor for summaries and experience descriptions
+
+### Resume Builder
+- **20 resume templates** — Modern, Classic, Minimal, Executive, Slate, Teal, Elegant, Creative, Tech, Gradient, Timeline, Compact, Academic, Coral, Navy, Clean Pro, Soft, Forest, Monochrome, Sunrise
+- **Live preview editor** — two-panel layout with form editor and debounced live preview
+- **PDF export** — Puppeteer-generated A4 PDFs with proper page breaks and multi-page support
+- **Resume status tracking** — Draft, Final, Archived
+- **Resume cloning for tailoring** — original resumes are never mutated; AI creates a separate tailored clone
+
+### AI Features (Claude)
+- **AI resume tailoring** — rewrites summary, experience bullets, and reorders skills to match a job description; max 3 per job posting
+- **AI cover letter generation** — real-time SSE streaming in your choice of tone (Professional, Conversational, Enthusiastic)
 - **AI summary improvement** — refine your profile summary for a target role
-- **Job tracker** — Kanban board with drag-and-drop, custom status columns, and per-job notes
-- **Amendment history** — every AI action per job is logged and viewable
+- **Amendment history** — every AI action per job is logged with timestamps and expandable details
+
+### Job Tracker
+- **Kanban board** — drag-and-drop cards across fully customizable status columns
+- **Custom job statuses** — create, rename, recolor, reorder, and delete columns (defaults: Saved, Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn)
+- **Per-job details** — company, title, URL, job description, location, salary, notes, linked resume, cover letter
+- **Resume linking** — attach any resume to a job application
+
+### Auth & Security
+- **Google OAuth** — primary sign-in method
+- **GitHub OAuth** — scaffolded and configurable
+- **Session management** — PostgreSQL-backed sessions with 7-day lifetime
+- **Rate limiting** — AI routes limited to 10 requests per 15 minutes per user
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18 + TypeScript, Vite, Tailwind CSS, React Router v7 |
-| State | Zustand (UI), React Hook Form + Zod (forms) |
+| State | Zustand (UI), React Hook Form + Zod (forms), React Query |
+| Rich Text | TipTap editor |
+| Drag & Drop | dnd-kit |
 | Backend | Express + TypeScript, Passport.js (Google OAuth) |
 | Database | PostgreSQL + Prisma 5 |
 | AI | Claude via OpenAI-compatible SDK (`OPENAI_API_KEY`) |
@@ -105,7 +129,7 @@ resume-app/
     └── src/
         ├── config/       # env, passport, prisma singleton
         ├── middleware/   # requireAuth, validateBody, errorHandler
-        ├── routes/       # auth, profile, resumes, jobs, ai
+        ├── routes/       # auth, profile, resumes, jobs, job-statuses, ai, templates
         └── services/     # claude.ts, pdf.ts, templates.ts
 ```
 
@@ -128,13 +152,25 @@ resume-app/
 | GET | `/api/auth/me` | Current session user |
 | GET | `/api/auth/google` | Start Google OAuth flow |
 | POST | `/api/auth/logout` | End session |
+| DELETE | `/api/auth/account` | Delete account and all data |
 | GET/POST/PUT | `/api/profile` | Profile CRUD |
+| POST | `/api/profile/parse-pdf` | Parse PDF resume into structured data |
+| CRUD | `/api/profile/experiences/:id` | Work experience entries |
+| CRUD | `/api/profile/educations/:id` | Education entries |
+| CRUD | `/api/profile/skills/:id` | Skills |
+| CRUD | `/api/profile/certifications/:id` | Certifications |
 | GET/POST | `/api/resumes` | List / create resumes |
 | GET/PUT/DELETE | `/api/resumes/:id` | Single resume |
-| GET | `/api/resumes/:id/pdf` | Stream PDF |
+| GET | `/api/resumes/:id/preview` | Resume HTML preview |
+| POST | `/api/resumes/:id/render` | Render custom contentJson to HTML |
+| GET | `/api/resumes/:id/pdf` | Download PDF |
 | GET/POST | `/api/jobs` | List / create job applications |
 | GET/PUT/DELETE | `/api/jobs/:id` | Single job (includes amendment history) |
-| PUT | `/api/jobs/:id/resume` | Link resume to job |
+| PUT | `/api/jobs/:id/resume` | Link/unlink resume to job |
+| GET/POST | `/api/job-statuses` | List / create job statuses |
+| PUT/DELETE | `/api/job-statuses/:id` | Update / delete status |
+| POST | `/api/job-statuses/reorder` | Bulk reorder statuses |
+| GET | `/api/templates/:id/preview` | Preview template with profile data |
 | POST | `/api/ai/tailor` | Tailor resume for a job (rate limited) |
 | POST | `/api/ai/cover-letter` | Generate cover letter via SSE (rate limited) |
 | POST | `/api/ai/improve-summary` | Improve profile summary (rate limited) |
@@ -143,7 +179,7 @@ AI routes are rate limited to **10 requests per 15 minutes per user**.
 
 ## Hosting & Deployment
 
-The app splits hosting across three free services. Vercel rewrites proxy `/api/*` to Railway, keeping the split invisible to the frontend.
+The app splits hosting across three services. Vercel rewrites proxy `/api/*` to Railway, keeping the split invisible to the frontend.
 
 ```
 Browser → Vercel (static frontend)
