@@ -258,7 +258,10 @@ export function JobTrackerPage() {
   const streamToString = (jobDescription: string, tone: string): Promise<string> =>
     new Promise((resolve, reject) => {
       let text = '';
-      const abort = streamCoverLetter(jobDescription, tone, (chunk) => { text += chunk; }, () => resolve(text), reject);
+      const abort = streamCoverLetter(jobDescription, tone, (chunk) => { text += chunk; }, () => {
+        const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        resolve(text.replace(/\[date\]/gi, today));
+      }, reject);
       abortRef.current = abort;
     });
 

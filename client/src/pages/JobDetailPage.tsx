@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
 import { getJob, updateJob } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
@@ -24,6 +24,9 @@ export function JobDetailPage() {
   const [editForm, setEditForm] = useState<Partial<JobApplication>>({});
   const [editSaving, setEditSaving] = useState(false);
   const [coverLetterOpen, setCoverLetterOpen] = useState(false);
+  const [coverLetterPreviewOpen, setCoverLetterPreviewOpen] = useState(false);
+  const [coverLetterPreviewText, setCoverLetterPreviewText] = useState<string | null>(null);
+  const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
   const [tone, setTone] = useState('Professional');
   const [coverLetter, setCoverLetter] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -31,12 +34,16 @@ export function JobDetailPage() {
   const [tailorSourceId, setTailorSourceId] = useState('');
   const [notes, setNotes] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [expandedAmendment, setExpandedAmendment] = useState<string | null>(null);
   const abortRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (id) {
-      getJob(id).then((j) => { setJob(j); setNotes(j.notes ?? ''); setCoverLetter(j.coverLetter ?? ''); }).catch(() => {});
+      getJob(id).then((j) => {
+        setJob(j);
+        setNotes(j.notes ?? '');
+        const t = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        setCoverLetter((j.coverLetter ?? '').replace(/\[date\]/gi, t));
+      }).catch(() => {});
       getJobStatuses().then(setStatuses).catch(() => {});
     }
   }, [id]);
@@ -111,6 +118,9 @@ export function JobDetailPage() {
       (chunk) => { generated += chunk; setCoverLetter((prev) => prev + chunk); },
       async () => {
         setStreaming(false);
+        const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+        generated = generated.replace(/\[date\]/gi, today);
+        setCoverLetter(generated);
         try {
           await updateJob(job.id, { coverLetter: generated });
           // Refresh to get updated amendments
@@ -126,6 +136,9 @@ export function JobDetailPage() {
   };
 
   if (!job) return <div className="text-center py-20 text-gray-400">Loading…</div>;
+
+  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const displayCoverLetter = job.coverLetter?.replace(/\[date\]/gi, today) ?? null;
 
   const amendmentCount = job.aiAmendments?.length ?? 0;
   const amendmentLimitReached = amendmentCount >= AI_AMENDMENT_LIMIT;
@@ -314,8 +327,8 @@ export function JobDetailPage() {
                           {amendment.type === 'RESUME_TAILOR' ? 'Resume Tailored' : 'Cover Letter'}
                           <span className="ml-1 font-normal text-gray-400">#{job.aiAmendments!.length - i}</span>
                         </span>
-                        <span className="text-[10px] text-gray-400">
-                          {new Date(amendment.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                          {new Date(amendment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
                       </div>
                       {amendment.type === 'RESUME_TAILOR' && amendment.resumeId && (
@@ -324,19 +337,12 @@ export function JobDetailPage() {
                         </Link>
                       )}
                       {amendment.type === 'COVER_LETTER' && amendment.coverLetterText && (
-                        <div>
-                          <button
-                            className="text-xs text-blue-600 hover:underline"
-                            onClick={() => setExpandedAmendment(expandedAmendment === amendment.id ? null : amendment.id)}
-                          >
-                            {expandedAmendment === amendment.id ? 'Hide' : 'View'} cover letter
-                          </button>
-                          {expandedAmendment === amendment.id && (
-                            <pre className="mt-2 text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-2 bg-white">
-                              {amendment.coverLetterText}
-                            </pre>
-                          )}
-                        </div>
+                        <button
+                          className="text-xs text-blue-600 hover:underline"
+                          onClick={() => { setCoverLetterPreviewText((amendment.coverLetterText ?? '').replace(/\[date\]/gi, today)); setCoverLetterPreviewOpen(true); }}
+                        >
+                          View cover letter
+                        </button>
                       )}
                     </div>
                   ))}
@@ -349,18 +355,28 @@ export function JobDetailPage() {
             <div className="flex items-start justify-between gap-3 mb-3">
               <h2 className="font-semibold text-gray-900 text-sm shrink-0">Cover Letter</h2>
               <div className="flex items-center gap-2 flex-wrap justify-end">
-                {job.coverLetter && (
-                  <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(job.coverLetter!); addToast('Cover letter copied!', 'success'); }}>
-                    <Copy size={14} /> Copy
+                {displayCoverLetter && (
+                  <>
+                    <button title="Preview" onClick={() => { setCoverLetterPreviewText(displayCoverLetter); setCoverLetterPreviewOpen(true); }} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700">
+                      <Eye size={14} />
+                    </button>
+                    <button title="Copy" onClick={() => { navigator.clipboard.writeText(displayCoverLetter); addToast('Cover letter copied!', 'success'); }} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700">
+                      <Copy size={14} />
+                    </button>
+                    <Button variant="secondary" size="sm" onClick={() => setConfirmRegenOpen(true)} disabled={amendmentLimitReached} loading={streaming}>
+                      <Sparkles size={14} /> Regenerate
+                    </Button>
+                  </>
+                )}
+                {!displayCoverLetter && (
+                  <Button variant="secondary" size="sm" onClick={() => setCoverLetterOpen(true)} disabled={amendmentLimitReached}>
+                    <Sparkles size={14} /> Generate
                   </Button>
                 )}
-                <Button variant="secondary" size="sm" onClick={() => setCoverLetterOpen(true)} disabled={amendmentLimitReached}>
-                  <Sparkles size={14} /> {job.coverLetter ? 'Regenerate' : 'Generate'}
-                </Button>
               </div>
             </div>
-            {job.coverLetter ? (
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">{job.coverLetter}</pre>
+            {displayCoverLetter ? (
+              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">{displayCoverLetter}</pre>
             ) : (
               <p className="text-xs text-gray-400">No cover letter yet. Generate one with Claude or write your own.</p>
             )}
@@ -410,6 +426,26 @@ export function JobDetailPage() {
               Save Changes
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal open={coverLetterPreviewOpen} onClose={() => setCoverLetterPreviewOpen(false)} title="Cover Letter Preview" size="xl">
+        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed max-h-[70vh] overflow-y-auto">{coverLetterPreviewText}</pre>
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(coverLetterPreviewText!); addToast('Cover letter copied!', 'success'); }}>
+            <Copy size={14} /> Copy
+          </Button>
+          <Button variant="secondary" onClick={() => setCoverLetterPreviewOpen(false)}>Close</Button>
+        </div>
+      </Modal>
+
+      <Modal open={confirmRegenOpen} onClose={() => setConfirmRegenOpen(false)} title="Regenerate Cover Letter">
+        <p className="text-sm text-gray-600 mb-5">This will replace your current cover letter. Are you sure?</p>
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setConfirmRegenOpen(false)}>Cancel</Button>
+          <Button onClick={() => { setConfirmRegenOpen(false); handleGenerateCoverLetter(); }}>
+            <Sparkles size={14} /> Regenerate
+          </Button>
         </div>
       </Modal>
 
