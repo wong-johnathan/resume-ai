@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ZoomIn, X, Download } from 'lucide-react';
+import { ZoomIn, ZoomOut, X, Download } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { getTemplatePdfUrl } from '../api/templates';
 
@@ -53,6 +53,12 @@ export function TemplatesPage() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
+
+  const [mobileZoom, setMobileZoom] = useState(overlayScale);
+  const isMobile = window.innerWidth < 640;
+  useEffect(() => {
+    if (previewId) setMobileZoom(overlayScale);
+  }, [previewId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const previewTemplate = previewId ? templates.find((t) => t.id === previewId) : null;
 
@@ -124,6 +130,24 @@ export function TemplatesPage() {
               <span className="text-sm text-gray-400 ml-2 hidden sm:inline">— {previewTemplate.description}</span>
             </div>
             <div className="flex items-center gap-3">
+              {isMobile && (
+                <div className="flex items-center gap-1 sm:hidden">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMobileZoom((z) => Math.max(0.3, +(z - 0.1).toFixed(1))); }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                    title="Zoom out"
+                  >
+                    <ZoomOut size={18} />
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMobileZoom((z) => Math.min(1.5, +(z + 0.1).toFixed(1))); }}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
+                    title="Zoom in"
+                  >
+                    <ZoomIn size={18} />
+                  </button>
+                </div>
+              )}
               <a href={getTemplatePdfUrl(previewTemplate.id)} download>
                 <Button>
                   <Download size={15} /> Download PDF
@@ -139,29 +163,25 @@ export function TemplatesPage() {
           </div>
 
           {/* Scrollable preview */}
-          <div
-            className="flex-1 overflow-auto py-6"
-            style={{ display: 'flex', justifyContent: overlayScale < 1 ? 'flex-start' : 'center', paddingLeft: overlayScale < 1 ? 0 : '1rem', paddingRight: overlayScale < 1 ? 0 : '1rem' }}
-          >
+          <div className="flex-1 overflow-auto py-6 px-4">
             <div
-              className="bg-white shadow-2xl rounded-sm"
-              style={{ width: '794px', flexShrink: 0 }}
+              className="shadow-2xl rounded-sm"
+              style={{
+                width: '794px',
+                margin: '0 auto',
+                zoom: isMobile ? mobileZoom : 1,
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               <iframe
                 src={`/api/templates/${previewTemplate.id}/preview`}
                 title={`${previewTemplate.name} full preview`}
-                onLoad={(e) => {
-                  try {
-                    const doc = e.currentTarget.contentDocument;
-                    if (doc) e.currentTarget.style.height = doc.documentElement.scrollHeight + 'px';
-                  } catch {}
-                }}
                 style={{
                   width: '794px',
                   height: '1122px',
                   border: 'none',
                   display: 'block',
+                  background: 'white',
                 }}
               />
             </div>
