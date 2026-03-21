@@ -15,7 +15,7 @@ interface AppStore {
 }
 
 export const useAppStore = create<AppStore>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: false,
   toasts: [],
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
   addToast: (message, type = 'info') => {

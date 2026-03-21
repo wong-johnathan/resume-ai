@@ -117,7 +117,7 @@ export function SetupPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-xl border shadow-sm p-6 space-y-6">
         <div>
           <h2 className="font-semibold text-gray-900 mb-4">Personal Information</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="First Name"
               {...register('firstName')}
@@ -148,7 +148,7 @@ export function SetupPage() {
 
         <div>
           <h2 className="font-semibold text-gray-900 mb-4">Online Presence <span className="text-sm font-normal text-gray-400">(optional)</span></h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Input
                 label="LinkedIn URL"
@@ -165,7 +165,7 @@ export function SetupPage() {
               />
               {githubVal && !/^https?:\/\//i.test(githubVal) && <p className="text-xs text-blue-500 mt-0.5">https:// will be added automatically</p>}
             </div>
-            <div className="col-span-2">
+            <div className="sm:col-span-2">
               <Input
                 label="Portfolio URL"
                 placeholder="yoursite.com"

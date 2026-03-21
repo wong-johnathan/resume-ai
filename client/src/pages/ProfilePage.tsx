@@ -128,7 +128,7 @@ export function ProfilePage() {
     setDeleting(true);
     try {
       await deleteAccount();
-      navigate('/login');
+      window.location.href = '/';
     } catch {
       addToast('Failed to delete account. Please try again.', 'error');
       setDeleting(false);
@@ -164,7 +164,7 @@ export function ProfilePage() {
       {/* Personal Info */}
       <form onSubmit={handleSubmit(onSaveInfo)} className="bg-white rounded-xl border shadow-sm p-6 mb-4">
         <h2 className="font-semibold text-gray-900 mb-4">Personal Information</h2>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
           <Input label="First Name" {...register('firstName', { required: true })} error={errors.firstName ? 'Required' : ''} />
           <Input label="Last Name" {...register('lastName', { required: true })} error={errors.lastName ? 'Required' : ''} />
           <Input label="Email" type="email" {...register('email', { required: true })} />
