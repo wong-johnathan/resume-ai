@@ -17,8 +17,19 @@ export function ResumeEditPage() {
   const [resume, setResume] = useState<Resume | null>(null);
   const [previewHtml, setPreviewHtml] = useState('');
   const [saving, setSaving] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const [previewScale, setPreviewScale] = useState(() =>
+    window.innerWidth < 768 ? Math.min(1, (window.innerWidth - 16) / 794) : 1
+  );
+  useEffect(() => {
+    const update = () =>
+      setPreviewScale(window.innerWidth < 768 ? Math.min(1, (window.innerWidth - 16) / 794) : 1);
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   const adjustIframeHeight = useCallback(() => {
     try {
@@ -111,31 +122,51 @@ export function ResumeEditPage() {
         </div>
         <a href={getPdfUrl(resume.id)} download={`${resume.title}.pdf`}>
           <Button variant="secondary" size="sm">
-            <Download size={14} /> Download PDF
+            <Download size={14} /> <span className="hidden sm:inline">Download PDF</span>
           </Button>
         </a>
         <Button onClick={handleSave} loading={saving} size="sm">
-          <Save size={14} /> Save
+          <Save size={14} /> <span className="hidden sm:inline">Save</span>
         </Button>
+      </div>
+
+      {/* Mobile tab bar */}
+      <div className="md:hidden flex border-b bg-white flex-shrink-0">
+        <button
+          onClick={() => setMobileTab('edit')}
+          className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            mobileTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+          }`}
+        >
+          Edit
+        </button>
+        <button
+          onClick={() => setMobileTab('preview')}
+          className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            mobileTab === 'preview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
+          }`}
+        >
+          Preview
+        </button>
       </div>
 
       {/* Split pane */}
       <div className="flex flex-1 overflow-hidden">
         {/* Edit pane */}
-        <div className="w-[42%] overflow-y-auto border-r bg-gray-50 p-4 space-y-3 flex-shrink-0">
+        <div className={`${mobileTab === 'edit' ? 'block' : 'hidden'} md:block w-full md:w-[42%] overflow-y-auto border-r bg-gray-50 p-4 space-y-3 flex-shrink-0`}>
           {/* Personal Info */}
           <EditSection title="Personal Info">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input label="First Name" {...register('personalInfo.firstName')} />
               <Input label="Last Name" {...register('personalInfo.lastName')} />
               <Input label="Email" type="email" {...register('personalInfo.email')} />
               <Input label="Phone" {...register('personalInfo.phone')} />
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Input label="Location" placeholder="City, State" {...register('personalInfo.location')} />
               </div>
               <Input label="LinkedIn URL" {...register('personalInfo.linkedinUrl')} />
               <Input label="GitHub URL" {...register('personalInfo.githubUrl')} />
-              <div className="col-span-2">
+              <div className="sm:col-span-2">
                 <Input label="Portfolio URL" {...register('personalInfo.portfolioUrl')} />
               </div>
             </div>
@@ -266,19 +297,34 @@ export function ResumeEditPage() {
         </div>
 
         {/* Preview pane */}
-        <div className="flex-1 bg-gray-100 overflow-auto">
+        <div className={`${mobileTab === 'preview' ? 'flex' : 'hidden'} md:flex flex-1 bg-gray-100 overflow-auto`}>
           {previewHtml ? (
-            <iframe
-              ref={iframeRef}
-              srcDoc={previewHtml}
-              title="Resume Preview"
-              className="w-full border-none block"
-              style={{ minHeight: '1122px', background: '#fff' }}
-              sandbox="allow-same-origin"
-              onLoad={adjustIframeHeight}
-            />
+            <div
+              style={previewScale < 1 ? {
+                width: `${794 * previewScale}px`,
+                height: `${1122 * previewScale}px`,
+                overflow: 'hidden',
+                flexShrink: 0,
+              } : { width: '100%' }}
+            >
+              <iframe
+                ref={iframeRef}
+                srcDoc={previewHtml}
+                title="Resume Preview"
+                className={previewScale >= 1 ? 'w-full border-none block' : 'border-none block'}
+                style={previewScale < 1 ? {
+                  width: '794px',
+                  height: '1122px',
+                  background: '#fff',
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top left',
+                } : { minHeight: '1122px', background: '#fff' }}
+                sandbox="allow-same-origin"
+                onLoad={adjustIframeHeight}
+              />
+            </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-full text-gray-400 text-sm w-full">
               Loading preview…
             </div>
           )}
@@ -400,7 +446,7 @@ function EditExpModal({
   return (
     <Modal open={open} onClose={onClose} title="Edit Experience" size="xl">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input label="Title *" {...register('title', { required: true })} />
           <Input label="Company *" {...register('company', { required: true })} />
         </div>
@@ -413,7 +459,7 @@ function EditExpModal({
           />
           <span className="text-sm text-gray-700">Currently working here</span>
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input label="Start Date" type="date" {...register('startDate')} />
           {!isCurrent && <Input label="End Date" type="date" {...register('endDate')} />}
         </div>
@@ -524,7 +570,7 @@ function EditEduModal({
         <Input label="Institution *" {...register('institution', { required: true })} />
         <Input label="Degree" {...register('degree')} />
         <Input label="Field of Study" {...register('fieldOfStudy')} />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Input label="Start Date" type="date" {...register('startDate')} />
           <Input label="End Date" type="date" {...register('endDate')} />
         </div>

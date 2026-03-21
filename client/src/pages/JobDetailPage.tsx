@@ -386,7 +386,7 @@ export function JobDetailPage() {
 
       <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit Job" size="xl">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
               label="Job Title *"
               value={editForm.jobTitle ?? ''}

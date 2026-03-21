@@ -10,16 +10,25 @@ const links = [
   { to: '/jobs', icon: Briefcase, label: 'Job Tracker' },
 ];
 
-export function Sidebar() {
+interface Props {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ open, onClose }: Props) {
   const { user, refetch } = useAuth();
 
   const handleLogout = async () => {
     await logout();
-    refetch();
+    window.location.href = '/';
   };
 
   return (
-    <aside className="w-60 min-w-60 bg-gray-900 flex flex-col h-screen sticky top-0">
+    <aside
+      className={`fixed inset-y-0 left-0 z-40 w-60 bg-gray-900 flex flex-col h-screen transition-transform duration-200 md:sticky md:top-0 md:translate-x-0 md:z-auto md:min-w-60 ${
+        open ? 'translate-x-0' : '-translate-x-full'
+      }`}
+    >
       <div className="px-6 py-5 border-b border-gray-800">
         <span className="text-white font-bold text-lg tracking-tight">ResumeAI</span>
       </div>
@@ -29,6 +38,7 @@ export function Sidebar() {
           <NavLink
             key={to}
             to={to}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 isActive ? 'bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white'

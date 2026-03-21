@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink, Link2 } from 'lucide-react';
+import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink, Info } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 import { getJobs, getJob, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
-import { tailorResume, streamCoverLetter, crawlUrl, analyzeFit } from '../api/ai';
+import { tailorResume, streamCoverLetter, analyzeFit } from '../api/ai';
 import { JobApplication, JobStatus } from '../types';
 import { TEMPLATE_OPTIONS } from '../api/templates';
 import { Button } from '../components/ui/Button';
@@ -205,8 +205,6 @@ export function JobTrackerPage() {
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState('');
-  const [crawling, setCrawling] = useState(false);
-  const [crawlError, setCrawlError] = useState('');
   const abortRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -227,8 +225,6 @@ export function JobTrackerPage() {
     setAiCoverLetter(false);
     setCoverLetterTone('Professional');
     setProcessing(false);
-    setCrawling(false);
-    setCrawlError('');
     setAddOpen(true);
   };
 
@@ -237,25 +233,7 @@ export function JobTrackerPage() {
     setStep(1);
   };
 
-  const handleFetchUrl = async () => {
-    const url = watch('jobUrl')?.trim();
-    if (!url) return;
-    setCrawling(true);
-    setCrawlError('');
-    try {
-      const info = await crawlUrl(url);
-      if (info.company) setValue('company', info.company);
-      if (info.jobTitle) setValue('jobTitle', info.jobTitle);
-      if (info.location) setValue('location', info.location);
-      if (info.description) setValue('description', info.description);
-    } catch (e: any) {
-      setCrawlError(e?.response?.data?.error ?? 'Failed to fetch URL. Paste the job description manually.');
-    } finally {
-      setCrawling(false);
-    }
-  };
-
-  const streamToString = (jobDescription: string, tone: string): Promise<string> =>
+const streamToString = (jobDescription: string, tone: string): Promise<string> =>
     new Promise((resolve, reject) => {
       let text = '';
       const abort = streamCoverLetter(jobDescription, tone, (chunk) => { text += chunk; }, () => {
@@ -335,18 +313,18 @@ export function JobTrackerPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 gap-3">
         <h1 className="text-2xl font-bold text-gray-900">Job Tracker</h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Button variant="secondary" onClick={() => setManageOpen(true)}>
-            <Settings size={15} /> Statuses
+            <Settings size={15} /> <span className="hidden sm:inline">Statuses</span>
           </Button>
-          <Button onClick={openAdd}><Plus size={16} /> Add Job</Button>
+          <Button onClick={openAdd}><Plus size={16} /> <span className="hidden sm:inline">Add Job</span></Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mb-4">
         <input
           type="text"
           placeholder="Search jobs…"
@@ -532,32 +510,18 @@ export function JobTrackerPage() {
             {/* Step 1: Job Details */}
             {step === 0 && (
               <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
-                {/* URL fetch row */}
+                {/* URL row */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job URL</label>
-                  <div className="flex gap-2">
-                    <input
-                      {...register('jobUrl')}
-                      placeholder="https://…"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={handleFetchUrl}
-                      loading={crawling}
-                      disabled={!watch('jobUrl')?.trim() || crawling}
-                    >
-                      <Link2 size={14} /> Fetch
-                    </Button>
-                  </div>
-                  {crawlError && <p className="text-xs text-red-500 mt-1">{crawlError}</p>}
-                  {!crawlError && (
-                    <p className="text-xs text-gray-400 mt-1">Paste a job URL and click Fetch to auto-fill the form.</p>
-                  )}
+                  <input
+                    {...register('jobUrl')}
+                    placeholder="https://…"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Paste the link to the job posting for your own reference.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Input label="Job Title *" {...register('jobTitle', { required: true })} />
                   <Input label="Company *" {...register('company', { required: true })} />
                   <Input label="Location" {...register('location')} />
@@ -575,15 +539,29 @@ export function JobTrackerPage() {
                     </div>
                   </div>
                 </div>
-                <Textarea
-                  label="Job Description"
-                  rows={7}
-                  {...register('description')}
-                  placeholder="Paste the full job description — used for AI tailoring and cover letter generation…"
-                />
-                {liveDescription.trim().length > 0 && liveDescription.trim().length < 50 && (
-                  <p className="text-xs text-amber-600">Add at least 50 characters to unlock AI features ({50 - liveDescription.trim().length} more needed)</p>
-                )}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <label className="block text-sm font-medium text-gray-700">Job Description</label>
+                    <div className="group relative flex items-center">
+                      <Info size={14} className="text-gray-400 cursor-pointer" />
+                      <div className="absolute left-5 top-0 z-10 hidden group-hover:block w-72 rounded-lg bg-gray-800 text-white text-xs p-3 shadow-lg">
+                        Copy and paste the <strong>full job description</strong> directly from the job posting website. Include responsibilities, requirements, and any other details listed.
+                        <div className="mt-1.5 text-yellow-300 font-medium">Required to use AI resume tailoring and compatibility analysis.</div>
+                      </div>
+                    </div>
+                  </div>
+                  <Textarea
+                    rows={7}
+                    {...register('description')}
+                    placeholder="Copy and paste the full job description from the job posting website…"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    <span className="font-medium text-gray-500">Tip:</span> Paste the complete job description as written on the website — this is <span className="font-medium text-gray-600">required</span> for AI resume tailoring and compatibility analysis.
+                  </p>
+                  {liveDescription.trim().length > 0 && liveDescription.trim().length < 50 && (
+                    <p className="text-xs text-amber-600 mt-0.5">Add at least 50 characters to unlock AI features ({50 - liveDescription.trim().length} more needed)</p>
+                  )}
+                </div>
                 <div className="flex justify-end gap-3 pt-2">
                   <Button variant="secondary" type="button" onClick={() => setAddOpen(false)}>Cancel</Button>
                   <Button type="submit">Next <ChevronRight size={15} /></Button>
