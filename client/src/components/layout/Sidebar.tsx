@@ -25,7 +25,7 @@ export function Sidebar({ open, onClose }: Props) {
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-40 w-60 bg-gray-900 flex flex-col h-screen transition-transform duration-200 md:sticky md:top-0 md:translate-x-0 md:z-auto md:min-w-60 ${
+      className={`fixed inset-y-0 left-0 z-40 w-60 bg-gray-900 flex flex-col h-dvh transition-transform duration-200 md:sticky md:top-0 md:translate-x-0 md:z-auto md:min-w-60 ${
         open ? 'translate-x-0' : '-translate-x-full'
       }`}
     >

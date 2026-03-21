@@ -139,28 +139,29 @@ export function TemplatesPage() {
           </div>
 
           {/* Scrollable preview */}
-          <div className="flex-1 overflow-auto flex justify-center py-6 px-4">
+          <div
+            className="flex-1 overflow-auto py-6"
+            style={{ display: 'flex', justifyContent: overlayScale < 1 ? 'flex-start' : 'center', paddingLeft: overlayScale < 1 ? 0 : '1rem', paddingRight: overlayScale < 1 ? 0 : '1rem' }}
+          >
             <div
               className="bg-white shadow-2xl rounded-sm"
-              style={{
-                width: `${794 * overlayScale}px`,
-                height: `${1122 * overlayScale}px`,
-                flexShrink: 0,
-                overflow: 'hidden',
-              }}
+              style={{ width: '794px', flexShrink: 0 }}
               onClick={(e) => e.stopPropagation()}
             >
               <iframe
                 src={`/api/templates/${previewTemplate.id}/preview`}
                 title={`${previewTemplate.name} full preview`}
-                scrolling="no"
+                onLoad={(e) => {
+                  try {
+                    const doc = e.currentTarget.contentDocument;
+                    if (doc) e.currentTarget.style.height = doc.documentElement.scrollHeight + 'px';
+                  } catch {}
+                }}
                 style={{
                   width: '794px',
                   height: '1122px',
                   border: 'none',
                   display: 'block',
-                  transform: overlayScale < 1 ? `scale(${overlayScale})` : undefined,
-                  transformOrigin: 'top left',
                 }}
               />
             </div>
