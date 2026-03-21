@@ -1,6 +1,6 @@
 # Resume AI
 
-An AI-powered resume builder and job application assistant. Build resumes from a structured profile, choose from 20 professionally designed templates, export PDFs, track job applications on a Kanban board, and use Claude AI to tailor resumes and generate cover letters for specific job postings.
+An AI-powered resume builder and job application assistant. Build resumes from a structured profile, choose from 20 professionally designed templates, export PDFs, track job applications with a status table, and use Claude AI to tailor resumes and generate cover letters for specific job postings.
 
 ## Features
 
@@ -23,8 +23,8 @@ An AI-powered resume builder and job application assistant. Build resumes from a
 - **Amendment history** — every AI action per job is logged with timestamps and expandable details
 
 ### Job Tracker
-- **Kanban board** — drag-and-drop cards across fully customizable status columns
-- **Custom job statuses** — create, rename, recolor, reorder, and delete columns (defaults: Saved, Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn)
+- **Job table** — view and manage all job applications in a table with inline status changes
+- **Custom job statuses** — create, rename, recolor, reorder, and delete statuses (defaults: Saved, Applied, Phone Screen, Interview, Offer, Rejected, Withdrawn)
 - **Per-job details** — company, title, URL, job description, location, salary, notes, linked resume, cover letter
 - **Resume linking** — attach any resume to a job application
 
@@ -41,7 +41,6 @@ An AI-powered resume builder and job application assistant. Build resumes from a
 | Frontend | React 18 + TypeScript, Vite, Tailwind CSS, React Router v7 |
 | State | Zustand (UI), React Hook Form + Zod (forms), React Query |
 | Rich Text | TipTap editor |
-| Drag & Drop | dnd-kit |
 | Backend | Express + TypeScript, Passport.js (Google OAuth) |
 | Database | PostgreSQL + Prisma 5 |
 | AI | Claude via OpenAI-compatible SDK (`OPENAI_API_KEY`) |
@@ -141,7 +140,7 @@ resume-app/
 
 **Cover letter generation:** SSE stream from `POST /api/ai/cover-letter` — client reads chunks incrementally, saves the final text to the job record.
 
-**Job statuses:** Fully user-defined via `UserJobStatus` table. Kanban columns are driven by these custom labels.
+**Job statuses:** Fully user-defined via `UserJobStatus` table. Status options in the job table are driven by these custom labels.
 
 **AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `AiAmendment`. Max 3 amendments per job — enforced on both server (HTTP 403) and client (buttons disabled).
 
