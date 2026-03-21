@@ -19,6 +19,7 @@ const createJobSchema = z.object({
   salary: z.string().optional(),
   location: z.string().optional(),
   resumeId: z.string().optional(),
+  fitAnalysis: z.any().optional(),
 });
 
 const updateJobSchema = createJobSchema.partial();

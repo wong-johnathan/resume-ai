@@ -100,7 +100,7 @@ export function ResumeEditPage() {
     <div className="flex flex-col h-full -m-6">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-6 py-4 bg-white border-b shadow-sm flex-shrink-0">
-        <Link to={`/resumes/${resume.id}`} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+        <Link to={resume.tailoredFor ? `/jobs/${resume.tailoredFor}` : `/resumes/${resume.id}`} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1 min-w-0">

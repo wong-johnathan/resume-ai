@@ -1,11 +1,31 @@
 import api from './client';
-import { Resume } from '../types';
+import { Resume, FitAnalysis } from '../types';
+
+export interface ExtractedJobInfo {
+  company: string;
+  jobTitle: string;
+  location?: string;
+  description: string;
+}
+
+export const crawlUrl = (url: string) =>
+  api.post<ExtractedJobInfo>('/ai/crawl-url', { url }).then((r) => r.data);
+
+export const analyzeFit = (jobDescription: string, resumeId?: string) =>
+  api.post<FitAnalysis>('/ai/analyze-fit', { jobDescription, resumeId }).then((r) => r.data);
 
 export const tailorResume = (resumeId: string, jobDescription: string, jobId?: string) =>
   api.post<Resume>('/ai/tailor', { resumeId, jobDescription, jobId }).then((r) => r.data);
 
 export const improveSummary = (currentSummary: string, targetRole: string) =>
   api.post<{ summary: string }>('/ai/improve-summary', { currentSummary, targetRole }).then((r) => r.data);
+
+export const generateSummary = (
+  targetRole: string,
+  experiences: Array<{ title: string; company: string; description: string }>,
+  skills: Array<{ name: string }>
+) =>
+  api.post<{ summary: string; generationsUsed: number; generationsLimit: number }>('/ai/generate-summary', { targetRole, experiences, skills }).then((r) => r.data);
 
 // Cover letter uses SSE streaming — returns an EventSource-like fetch stream
 export function streamCoverLetter(

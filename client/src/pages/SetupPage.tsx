@@ -81,7 +81,7 @@ export function SetupPage() {
         ]);
       }
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
-      navigate('/dashboard');
+      navigate('/profile');
     } catch {
       addToast('Failed to save profile. Please try again.', 'error');
     } finally {

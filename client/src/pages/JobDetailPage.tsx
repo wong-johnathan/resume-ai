@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { getJob, updateJob, linkResume } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
-import { JobApplication, JobStatus, Resume, AiAmendment } from '../types';
+import { JobApplication, JobStatus, Resume, AiAmendment, FitAnalysis } from '../types';
 
 const AI_AMENDMENT_LIMIT = 3;
 import { Button } from '../components/ui/Button';
@@ -181,6 +181,50 @@ export function JobDetailPage() {
               : <p className="text-xs text-gray-400">No description added. <button onClick={openEdit} className="text-blue-500 hover:underline">Add one</button></p>
             }
           </div>
+
+          {job.fitAnalysis && (() => {
+            const fa = job.fitAnalysis as FitAnalysis;
+            const scoreColor = fa.score >= 70 ? 'text-green-700 bg-green-50 border-green-200' : fa.score >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
+            const scoreLabel = fa.score >= 70 ? 'Strong Match' : fa.score >= 40 ? 'Moderate Match' : 'Weak Match';
+            return (
+              <div className="bg-white rounded-xl border shadow-sm p-5">
+                <h2 className="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-1.5">
+                  <Sparkles size={14} className="text-blue-500" /> Fit Analysis
+                </h2>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 mb-4 ${scoreColor}`}>
+                  <span className="text-2xl font-bold">{fa.score}%</span>
+                  <span className="text-xs font-semibold">{scoreLabel}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <div className="rounded-lg border border-green-100 bg-green-50 p-3">
+                    <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1">
+                      <CheckCircle2 size={12} /> Strengths
+                    </p>
+                    <ul className="space-y-1">
+                      {fa.strengths.map((s, i) => (
+                        <li key={i} className="text-xs text-green-800 flex items-start gap-1.5">
+                          <span className="flex-shrink-0 mt-0.5">•</span>{s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
+                    <p className="text-xs font-semibold text-amber-700 mb-1.5 flex items-center gap-1">
+                      <AlertTriangle size={12} /> Gaps to Address
+                    </p>
+                    <ul className="space-y-1">
+                      {fa.gaps.map((g, i) => (
+                        <li key={i} className="text-xs text-amber-800 flex items-start gap-1.5">
+                          <span className="flex-shrink-0 mt-0.5">•</span>{g}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600 italic border-l-2 border-gray-200 pl-3">{fa.summary}</p>
+              </div>
+            );
+          })()}
 
           <div className="bg-white rounded-xl border shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">

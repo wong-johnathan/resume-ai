@@ -57,6 +57,7 @@ export interface Profile {
   githubUrl?: string | null;
   portfolioUrl?: string | null;
   summary?: string | null;
+  summaryGenerations: number;
   experiences: Experience[];
   educations: Education[];
   skills: Skill[];
@@ -89,6 +90,13 @@ export interface JobStatus {
   order: number;
 }
 
+export interface FitAnalysis {
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  summary: string;
+}
+
 export interface AiAmendment {
   id: string;
   jobApplicationId: string;
@@ -113,6 +121,7 @@ export interface JobApplication {
   coverLetter?: string | null;
   salary?: string | null;
   location?: string | null;
+  fitAnalysis?: FitAnalysis | null;
   createdAt: string;
   updatedAt: string;
   aiAmendments?: AiAmendment[];
