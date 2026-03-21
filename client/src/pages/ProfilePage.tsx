@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, FileUp, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, FileUp, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
@@ -8,6 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { RichTextEditor } from '../components/ui/RichTextEditor';
 import { getProfile, createProfile, updateProfile, addExperience, updateExperience, deleteExperience, addEducation, updateEducation, deleteEducation, addSkill, deleteSkill, addCertification, updateCertification, deleteCertification, parsePdf } from '../api/profile';
+import { generateSummary } from '../api/ai';
 import { deleteAccount } from '../api/auth';
 import { useAppStore } from '../store/useAppStore';
 import { Profile, Certification, Education, Experience } from '../types';
@@ -29,6 +30,9 @@ export function ProfilePage() {
   const [importing, setImporting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showSummaryGen, setShowSummaryGen] = useState(false);
+  const [targetRole, setTargetRole] = useState('');
+  const [generatingSummary, setGeneratingSummary] = useState(false);
 
   const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<ProfileForm>();
 
@@ -38,6 +42,29 @@ export function ProfilePage() {
   const linkedinVal = watch('linkedinUrl') ?? '';
   const githubVal = watch('githubUrl') ?? '';
   const portfolioVal = watch('portfolioUrl') ?? '';
+  const summaryVal = watch('summary') ?? '';
+
+  const handleGenerateSummary = async () => {
+    if (!targetRole.trim()) return;
+    setGeneratingSummary(true);
+    try {
+      const experiences = (profile?.experiences ?? []).map((e) => ({
+        title: e.title,
+        company: e.company,
+        description: e.description,
+      }));
+      const skills = (profile?.skills ?? []).map((s) => ({ name: s.name }));
+      const result = await generateSummary(targetRole, experiences, skills);
+      setValue('summary', result.summary);
+      setProfile((p) => p ? { ...p, summaryGenerations: result.generationsUsed } : null);
+      setShowSummaryGen(false);
+      setTargetRole('');
+    } catch {
+      addToast('Failed to generate summary. Please try again.', 'error');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   useEffect(() => {
     getProfile()
@@ -164,10 +191,59 @@ export function ProfilePage() {
               label="Professional Summary"
               value={field.value ?? ''}
               onChange={field.onChange}
-              className="mb-4"
+              className="mb-2"
             />
           )}
         />
+
+        {!summaryVal && (
+          <div className="mb-4">
+            {(profile?.summaryGenerations ?? 0) >= 4 ? (
+              <p className="text-xs text-gray-400">AI summary generation limit reached (4/4).</p>
+            ) : !showSummaryGen ? (
+              <button
+                type="button"
+                onClick={() => setShowSummaryGen(true)}
+                className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <Sparkles size={14} />
+                Generate with AI
+                {(profile?.summaryGenerations ?? 0) > 0 && (
+                  <span className="text-gray-400 font-normal">({profile!.summaryGenerations}/4 used)</span>
+                )}
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Target role (e.g. Senior Software Engineer)"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleGenerateSummary())}
+                  className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateSummary}
+                  disabled={generatingSummary || !targetRole.trim()}
+                  className="inline-flex items-center gap-1.5 text-sm bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                >
+                  {generatingSummary ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                  {generatingSummary ? 'Generating…' : 'Generate'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowSummaryGen(false); setTargetRole(''); }}
+                  className="text-sm text-gray-400 hover:text-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         <Button type="submit" loading={saving}>Save Info</Button>
       </form>
 

@@ -8,26 +8,11 @@ import { createResume } from '../api/resumes';
 import { useAppStore } from '../store/useAppStore';
 
 const templates = [
-  { id: 'modern',     name: 'Modern',      description: 'Two-column layout with a colored sidebar for skills and contact info.' },
-  { id: 'classic',    name: 'Classic',     description: 'Traditional single-column layout with serif typography.' },
   { id: 'minimal',    name: 'Minimal',     description: 'Clean sans-serif design with generous whitespace.' },
-  { id: 'executive',  name: 'Executive',   description: 'Bold and compact — high-impact executive presentation.' },
-  { id: 'slate',      name: 'Slate',       description: 'Dark slate header with a clean single-column layout.' },
-  { id: 'teal',       name: 'Teal',        description: 'Fresh teal right sidebar, modern feel.' },
-  { id: 'elegant',    name: 'Elegant',     description: 'Centered serif header with decorative horizontal rules.' },
-  { id: 'creative',   name: 'Creative',    description: 'Bold purple gradient accent bar, pill-shaped skills.' },
-  { id: 'tech',       name: 'Tech',        description: 'Dark code-inspired theme with monospace typography.' },
-  { id: 'gradient',   name: 'Gradient',    description: 'Purple-to-blue gradient header, SaaS-modern style.' },
-  { id: 'timeline',   name: 'Timeline',    description: 'Vertical timeline for experience with orange accents.' },
   { id: 'compact',    name: 'Compact',     description: 'Dense layout that maximises content per page.' },
-  { id: 'academic',   name: 'Academic',    description: 'CV-style for academia — formal and detailed.' },
-  { id: 'coral',      name: 'Coral',       description: 'Warm coral-pink accents with a two-column sidebar.' },
-  { id: 'navy',       name: 'Navy',        description: 'Deep navy sidebar with gold skill bars.' },
+  { id: 'elegant',    name: 'Elegant',     description: 'Centered serif header with decorative horizontal rules.' },
+  { id: 'tech',       name: 'Tech',        description: 'Dark code-inspired theme with monospace typography.' },
   { id: 'cleanpro',   name: 'Clean Pro',   description: 'Ultra-clean layout with right-aligned contact stack.' },
-  { id: 'soft',       name: 'Soft',        description: 'Pastel gradient header, card-style sections.' },
-  { id: 'forest',     name: 'Forest',      description: 'Deep green sidebar — natural and grounded.' },
-  { id: 'monochrome', name: 'Monochrome',  description: 'Stark black-and-white, maximum contrast.' },
-  { id: 'sunrise',    name: 'Sunrise',     description: 'Amber-to-red gradient header with skill bars.' },
 ];
 
 const IFRAME_WIDTH = 800;

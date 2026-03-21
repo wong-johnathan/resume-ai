@@ -176,6 +176,138 @@ ${text}`;
   return JSON.parse(cleaned) as ParsedProfile;
 }
 
+// ─── Extract Job Info from raw text ──────────────────────────────────────────
+
+export interface ExtractedJobInfo {
+  company: string;
+  jobTitle: string;
+  location?: string | null;
+  description: string;
+}
+
+export async function extractJobInfo(rawText: string): Promise<ExtractedJobInfo> {
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 2000,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'user',
+        content: `Extract the job posting information from the following text. Return ONLY valid JSON with these fields:
+- "company": the hiring company name (string)
+- "jobTitle": the job title/role (string)
+- "location": city/state/country or "Remote" if applicable (string or null)
+- "description": the full job description including responsibilities and requirements (string, preserve as much detail as possible)
+
+If a field cannot be determined, use null for optional fields or an empty string for required fields.
+
+Text:
+${rawText.slice(0, 8000)}`,
+      },
+    ],
+  });
+
+  const text = response.choices[0].message.content ?? '{}';
+  return JSON.parse(text) as ExtractedJobInfo;
+}
+
+// ─── Analyze Job Fit ──────────────────────────────────────────────────────────
+
+export interface FitAnalysis {
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  summary: string;
+}
+
+interface FitAnalysisInput {
+  jobDescription: string;
+  resumeContent?: ResumeContent;
+  profile: {
+    summary?: string | null;
+    experiences: Array<{ title: string; company: string; description: string }>;
+    skills: Array<{ name: string; level: string }>;
+  };
+}
+
+export async function analyzeJobFit(input: FitAnalysisInput): Promise<FitAnalysis> {
+  const { jobDescription, resumeContent, profile } = input;
+
+  const skillsList = resumeContent
+    ? resumeContent.skills.map((s) => `${s.name} (${s.level})`).join(', ')
+    : profile.skills.map((s) => `${s.name} (${s.level})`).join(', ');
+
+  const experienceText = resumeContent
+    ? resumeContent.experiences
+        .slice(0, 3)
+        .map((e) => `${e.title} at ${e.company}: ${e.description.slice(0, 200)}`)
+        .join('\n')
+    : profile.experiences
+        .slice(0, 3)
+        .map((e) => `${e.title} at ${e.company}: ${e.description.slice(0, 200)}`)
+        .join('\n');
+
+  const summaryText = resumeContent?.summary ?? profile.summary ?? '';
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 600,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'user',
+        content: `Analyze how well this candidate fits the job description. Write everything in second person, directly addressing the candidate as "you" — never use "the candidate", "they", or "their". Return ONLY valid JSON with:
+- "score": integer 0-100 representing overall fit percentage
+- "strengths": array of 3-5 short strings describing what makes you a strong fit (e.g. "Your 5 years of React experience aligns well with...")
+- "gaps": array of 3-5 short strings describing skills or experience you lack (e.g. "You haven't listed experience with Kubernetes...")
+- "summary": 1-2 sentence narrative addressed directly to you (e.g. "You are a strong fit for this role because...")
+
+Candidate Profile:
+Summary: ${summaryText}
+Skills: ${skillsList}
+Experience:
+${experienceText}
+
+Job Description:
+${jobDescription.slice(0, 3000)}`,
+      },
+    ],
+  });
+
+  const text = response.choices[0].message.content ?? '{}';
+  return JSON.parse(text) as FitAnalysis;
+}
+
+// ─── Generate Summary from scratch ───────────────────────────────────────────
+
+export async function generateSummary(
+  targetRole: string,
+  experiences: Array<{ title: string; company: string; description: string }>,
+  skills: Array<{ name: string }>
+): Promise<string> {
+  const expText = experiences
+    .slice(0, 3)
+    .map((e) => `${e.title} at ${e.company}: ${e.description.slice(0, 200)}`)
+    .join('\n');
+  const skillsList = skills.slice(0, 10).map((s) => s.name).join(', ');
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 200,
+    messages: [
+      {
+        role: 'user',
+        content: `Write a professional resume summary for a candidate targeting the role of "${targetRole}". Keep it 2-3 sentences, punchy and keyword-rich. Return only the summary text, nothing else.
+
+${expText ? `Experience:\n${expText}` : ''}
+${skillsList ? `Skills: ${skillsList}` : ''}`.trim(),
+      },
+    ],
+  });
+
+  return response.choices[0].message.content?.trim() ?? '';
+}
+
 // ─── Improve Summary ─────────────────────────────────────────────────────────
 
 export async function improveSummary(currentSummary: string, targetRole: string): Promise<string> {

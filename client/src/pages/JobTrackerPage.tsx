@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink, Link2 } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
 import { getJobs, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getResumes } from '../api/resumes';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
-import { tailorResume, streamCoverLetter } from '../api/ai';
+import { tailorResume, streamCoverLetter, crawlUrl, analyzeFit } from '../api/ai';
 import { JobApplication, JobStatus, Resume } from '../types';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -25,7 +25,7 @@ type JobDetailsForm = {
   location?: string;
 };
 
-const STEPS = ['Job Details', 'Resume & Cover Letter', 'AI Enhancement'] as const;
+const STEPS = ['Job Details', 'Resume', 'AI Enhancement'] as const;
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -195,17 +195,19 @@ export function JobTrackerPage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
   const { addToast } = useAppStore();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
-  const { register, handleSubmit, reset, watch } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
+  const { register, handleSubmit, reset, watch, setValue } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
   const [jobDetails, setJobDetails] = useState<JobDetailsForm | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState('');
-  const [coverLetter, setCoverLetter] = useState('');
   const [aiTailor, setAiTailor] = useState(false);
   const [aiCoverLetter, setAiCoverLetter] = useState(false);
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState('');
+  const [crawling, setCrawling] = useState(false);
+  const [crawlError, setCrawlError] = useState('');
   const abortRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -224,17 +226,36 @@ export function JobTrackerPage() {
     reset({ status: statuses[0]?.label ?? 'SAVED' });
     setJobDetails(null);
     setSelectedResumeId('');
-    setCoverLetter('');
     setAiTailor(false);
     setAiCoverLetter(false);
     setCoverLetterTone('Professional');
     setProcessing(false);
+    setCrawling(false);
+    setCrawlError('');
     setAddOpen(true);
   };
 
   const onStep1Submit = (data: JobDetailsForm) => {
     setJobDetails(data);
     setStep(1);
+  };
+
+  const handleFetchUrl = async () => {
+    const url = watch('jobUrl')?.trim();
+    if (!url) return;
+    setCrawling(true);
+    setCrawlError('');
+    try {
+      const info = await crawlUrl(url);
+      if (info.company) setValue('company', info.company);
+      if (info.jobTitle) setValue('jobTitle', info.jobTitle);
+      if (info.location) setValue('location', info.location);
+      if (info.description) setValue('description', info.description);
+    } catch (e: any) {
+      setCrawlError(e?.response?.data?.error ?? 'Failed to fetch URL. Paste the job description manually.');
+    } finally {
+      setCrawling(false);
+    }
   };
 
   const streamToString = (jobDescription: string, tone: string): Promise<string> =>
@@ -252,18 +273,17 @@ export function JobTrackerPage() {
       const job = await createJob({
         ...jobDetails,
         resumeId: selectedResumeId || undefined,
-        coverLetter: coverLetter.trim() || undefined,
       } as any);
 
       const hasDescription = (jobDetails.description?.trim().length ?? 0) >= 50;
+      let finalResumeId = selectedResumeId || undefined;
 
       if (useAi && aiTailor && selectedResumeId && hasDescription) {
         setProcessingLabel('Tailoring resume with Claude…');
-        // Clone + tailor; server auto-links the new resume to the job
         await tailorResume(selectedResumeId, jobDetails.description!, job.id);
-        // Refresh job so it carries the updated resumeId
         const refreshed = await (await import('../api/jobs')).getJob(job.id);
         Object.assign(job, refreshed);
+        finalResumeId = refreshed.resumeId ?? finalResumeId;
       }
 
       if (useAi && aiCoverLetter && hasDescription) {
@@ -275,9 +295,17 @@ export function JobTrackerPage() {
         }
       }
 
-      setJobs((j) => [job, ...j]);
-      setAddOpen(false);
-      addToast('Job added!', 'success');
+      if (hasDescription) {
+        setProcessingLabel('Analysing your fit…');
+        try {
+          const fit = await analyzeFit(jobDetails.description!, finalResumeId);
+          await updateJob(job.id, { fitAnalysis: fit } as any);
+        } catch {
+          // non-fatal — job is already created, proceed to detail page
+        }
+      }
+
+      navigate(`/jobs/${job.id}`);
     } catch (e: any) {
       addToast(e?.response?.data?.error ?? 'Something went wrong', 'error');
     } finally {
@@ -509,12 +537,36 @@ export function JobTrackerPage() {
             {/* Step 1: Job Details */}
             {step === 0 && (
               <form onSubmit={handleSubmit(onStep1Submit)} className="space-y-4">
+                {/* URL fetch row */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Job URL</label>
+                  <div className="flex gap-2">
+                    <input
+                      {...register('jobUrl')}
+                      placeholder="https://…"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleFetchUrl}
+                      loading={crawling}
+                      disabled={!watch('jobUrl')?.trim() || crawling}
+                    >
+                      <Link2 size={14} /> Fetch
+                    </Button>
+                  </div>
+                  {crawlError && <p className="text-xs text-red-500 mt-1">{crawlError}</p>}
+                  {!crawlError && (
+                    <p className="text-xs text-gray-400 mt-1">Paste a job URL and click Fetch to auto-fill the form.</p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <Input label="Job Title *" {...register('jobTitle', { required: true })} />
                   <Input label="Company *" {...register('company', { required: true })} />
                   <Input label="Location" {...register('location')} />
                   <Input label="Salary / Range" {...register('salary')} />
-                  <Input label="Job URL" {...register('jobUrl')} className="col-span-2" />
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <div className="flex items-center gap-2">
@@ -544,7 +596,7 @@ export function JobTrackerPage() {
               </form>
             )}
 
-            {/* Step 2: Resume & Cover Letter */}
+            {/* Step 2: Resume */}
             {step === 1 && (
               <div className="space-y-5">
                 <div>
@@ -566,19 +618,6 @@ export function JobTrackerPage() {
                       No resumes yet. <Link to="/templates" className="text-blue-500 hover:underline">Create one</Link> first.
                     </p>
                   )}
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Cover Letter <span className="text-gray-400 font-normal">(optional)</span>
-                  </label>
-                  <p className="text-xs text-gray-400 mb-2">Write your own, or let AI generate one in the next step.</p>
-                  <Textarea
-                    rows={8}
-                    value={coverLetter}
-                    onChange={(e) => setCoverLetter(e.target.value)}
-                    placeholder="Dear Hiring Manager…"
-                  />
                 </div>
 
                 <div className="flex justify-between gap-3 pt-2">
@@ -630,8 +669,7 @@ export function JobTrackerPage() {
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 font-semibold text-sm text-gray-900">
-                          <Sparkles size={15} className="text-purple-600" />
-                          {coverLetter.trim() ? 'Regenerate cover letter with AI' : 'Generate cover letter with AI'}
+                          <Sparkles size={15} className="text-purple-600" /> Generate cover letter with AI
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
                           Claude will write a personalized cover letter based on your profile and this job description.

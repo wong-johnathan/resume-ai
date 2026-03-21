@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
-import { tailorResume, generateCoverLetter, improveSummary } from '../services/claude';
+import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit } from '../services/claude';
 
 const router = Router();
 router.use(requireAuth);
@@ -132,6 +132,121 @@ router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, n
 
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
+  } catch (err) { next(err); }
+});
+
+// ─── Crawl URL and extract job info ──────────────────────────────────────────
+
+const crawlUrlSchema = z.object({
+  url: z.string().url(),
+});
+
+router.post('/crawl-url', validateBody(crawlUrlSchema), async (req, res, next) => {
+  try {
+    const jinaUrl = `https://r.jina.ai/${req.body.url}`;
+    const response = await fetch(jinaUrl, {
+      headers: { Accept: 'text/plain' },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!response.ok) {
+      return res.status(422).json({ error: 'Failed to fetch the URL. Please paste the job description manually.' });
+    }
+    const rawText = await response.text();
+
+    // Detect auth-gated pages (e.g. LinkedIn login wall)
+    const lowerText = rawText.toLowerCase();
+    const isLoginPage = lowerText.includes('sign in') && lowerText.includes('password') && rawText.length < 5000;
+    const isTooShort = rawText.trim().length < 200;
+    if (isLoginPage || isTooShort) {
+      return res.status(422).json({ error: 'This page requires a login to view. Copy and paste the job description manually instead.' });
+    }
+
+    const jobInfo = await extractJobInfo(rawText);
+
+    // Ensure we got something useful back
+    if (!jobInfo.description || jobInfo.description.trim().length < 50) {
+      return res.status(422).json({ error: 'Could not extract job details from this page. Paste the job description manually.' });
+    }
+
+    res.json(jobInfo);
+  } catch (err) { next(err); }
+});
+
+// ─── Analyze job fit ──────────────────────────────────────────────────────────
+
+const analyzeFitSchema = z.object({
+  jobDescription: z.string().min(50),
+  resumeId: z.string().optional(),
+});
+
+router.post('/analyze-fit', validateBody(analyzeFitSchema), async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+    let resumeContent;
+    if (req.body.resumeId) {
+      const resume = await prisma.resume.findFirst({
+        where: { id: req.body.resumeId, userId },
+      });
+      if (resume) resumeContent = resume.contentJson as any;
+    }
+
+    const result = await analyzeJobFit({
+      jobDescription: req.body.jobDescription,
+      resumeContent,
+      profile: {
+        summary: profile.summary,
+        experiences: profile.experiences.map((e) => ({
+          title: e.title,
+          company: e.company,
+          description: e.description,
+        })),
+        skills: profile.skills.map((s) => ({ name: s.name, level: s.level })),
+      },
+    });
+
+    res.json(result);
+  } catch (err) { next(err); }
+});
+
+// ─── Generate summary from scratch ───────────────────────────────────────────
+
+const generateSummarySchema = z.object({
+  targetRole: z.string().min(2),
+  experiences: z.array(z.object({
+    title: z.string(),
+    company: z.string(),
+    description: z.string(),
+  })).optional().default([]),
+  skills: z.array(z.object({ name: z.string() })).optional().default([]),
+});
+
+const SUMMARY_GENERATION_LIMIT = 4;
+
+router.post('/generate-summary', validateBody(generateSummarySchema), async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+
+    const profile = await prisma.profile.findUnique({ where: { userId }, select: { id: true, summaryGenerations: true } });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    if (profile.summaryGenerations >= SUMMARY_GENERATION_LIMIT) {
+      return res.status(403).json({ error: `Summary generation limit of ${SUMMARY_GENERATION_LIMIT} reached.` });
+    }
+
+    const summary = await generateSummary(req.body.targetRole, req.body.experiences, req.body.skills);
+
+    await prisma.profile.update({
+      where: { id: profile.id },
+      data: { summaryGenerations: { increment: 1 } },
+    });
+
+    res.json({ summary, generationsUsed: profile.summaryGenerations + 1, generationsLimit: SUMMARY_GENERATION_LIMIT });
   } catch (err) { next(err); }
 });
 

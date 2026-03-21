@@ -42,8 +42,9 @@ model Profile {
   linkedinUrl  String?
   githubUrl    String?
   portfolioUrl String?
-  summary      String?  @db.Text
-  createdAt    DateTime @default(now())
+  summary              String?  @db.Text
+  summaryGenerations   Int      @default(0)
+  createdAt            DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   experiences    Experience[]
@@ -148,6 +149,7 @@ model JobApplication {
   coverLetter String?   @db.Text
   salary      String?
   location    String?
+  fitAnalysis Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
