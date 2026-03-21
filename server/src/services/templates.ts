@@ -88,7 +88,9 @@ function techTemplate(c: ResumeContent): string {
   const { personalInfo: p, summary, experiences, educations, skills, certifications } = c;
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
+  @page{background:#0f172a;}
   *{margin:0;padding:0;box-sizing:border-box;}
+  html{background:#0f172a;}
   body{font-family:'Courier New',Courier,monospace;font-size:8.5pt;color:#e2e8f0;background:#0f172a;padding:32px 40px;}
   h1{font-size:20pt;font-weight:700;color:#38bdf8;letter-spacing:.04em;}
   .contact-line{font-size:7.5pt;color:#64748b;margin-top:5px;margin-bottom:20px;}

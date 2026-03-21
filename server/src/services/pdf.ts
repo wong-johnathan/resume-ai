@@ -18,7 +18,7 @@ const A4_HEIGHT_PX = 1123;
 
 const PAGE_CSS = `
   <style>
-    @page { size: A4; margin: 0; margin-top: 18mm; }
+    @page { size: A4; margin: 0; margin-top: 18mm; margin-bottom: 18mm; }
     @page :first { margin-top: 0; }
     html { width: 210mm; }
     body { width: 210mm; max-width: 210mm; overflow-x: hidden; }

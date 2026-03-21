@@ -30,6 +30,7 @@ export function ProfilePage() {
   const [importing, setImporting] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showSummaryGen, setShowSummaryGen] = useState(false);
   const [targetRole, setTargetRole] = useState('');
   const [generatingSummary, setGeneratingSummary] = useState(false);
@@ -69,7 +70,8 @@ export function ProfilePage() {
   useEffect(() => {
     getProfile()
       .then((p) => { setProfile(p); reset(p); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [reset]);
 
   const onSaveInfo = async (data: ProfileForm) => {
@@ -134,6 +136,36 @@ export function ProfilePage() {
       setDeleting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl animate-pulse">
+        <div className="h-8 bg-gray-200 rounded w-40 mb-6" />
+        <div className="h-24 bg-gray-100 rounded-xl mb-4" />
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4 space-y-4">
+          <div className="h-5 bg-gray-200 rounded w-32" />
+          <div className="grid grid-cols-2 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-10 bg-gray-100 rounded" />
+            ))}
+          </div>
+          <div className="h-24 bg-gray-100 rounded" />
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-4 space-y-3">
+          <div className="h-5 bg-gray-200 rounded w-32" />
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded" />
+          ))}
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-3">
+          <div className="h-5 bg-gray-200 rounded w-28" />
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="h-16 bg-gray-100 rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl">
