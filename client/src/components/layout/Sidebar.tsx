@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, FileText, Briefcase, Layout, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Briefcase, Layout, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { logout } from '../../api/auth';
 
@@ -7,7 +7,6 @@ const links = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/profile', icon: User, label: 'My Profile' },
   { to: '/templates', icon: Layout, label: 'Templates' },
-  { to: '/resumes', icon: FileText, label: 'Resumes' },
   { to: '/jobs', icon: Briefcase, label: 'Job Tracker' },
 ];
 

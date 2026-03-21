@@ -32,7 +32,7 @@ export function ResumeDetailPage() {
     <div className="flex flex-col h-full -m-6">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-6 py-4 bg-white border-b shadow-sm flex-shrink-0">
-        <Link to="/resumes" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+        <Link to={resume.tailoredFor && resume.tailoredFor !== 'job' ? `/jobs/${resume.tailoredFor}` : '/jobs'} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
           <ArrowLeft size={20} />
         </Link>
 

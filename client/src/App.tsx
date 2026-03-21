@@ -10,7 +10,6 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { SetupPage } from './pages/SetupPage';
 import { TemplatesPage } from './pages/TemplatesPage';
-import { ResumesPage } from './pages/ResumesPage';
 import { ResumeDetailPage } from './pages/ResumeDetailPage';
 import { ResumeEditPage } from './pages/ResumeEditPage';
 import { JobTrackerPage } from './pages/JobTrackerPage';
@@ -34,7 +33,6 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/templates" element={<TemplatesPage />} />
-                <Route path="/resumes" element={<ResumesPage />} />
                 <Route path="/resumes/:id/edit" element={<ResumeEditPage />} />
                 <Route path="/resumes/:id" element={<ResumeDetailPage />} />
                 <Route path="/jobs" element={<JobTrackerPage />} />

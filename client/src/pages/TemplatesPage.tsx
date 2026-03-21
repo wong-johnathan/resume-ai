@@ -1,11 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ZoomIn, X } from 'lucide-react';
+import { ZoomIn, X, Download } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Modal } from '../components/ui/Modal';
-import { createResume } from '../api/resumes';
-import { useAppStore } from '../store/useAppStore';
+import { getTemplatePdfUrl } from '../api/templates';
 
 const templates = [
   { id: 'minimal',    name: 'Minimal',     description: 'Clean sans-serif design with generous whitespace.' },
@@ -21,45 +17,21 @@ const PREVIEW_SCALE = 0.275;
 const PREVIEW_H = Math.round(IFRAME_HEIGHT * PREVIEW_SCALE);
 
 export function TemplatesPage() {
-  const navigate = useNavigate();
-  const { addToast } = useAppStore();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [title, setTitle] = useState('');
-  const [creating, setCreating] = useState(false);
   const [loadedIds, setLoadedIds] = useState<Set<string>>(new Set());
-
-  const openModal = (id: string) => {
-    setSelected(id);
-    setTitle('');
-    setModalOpen(true);
-  };
-
-  const handleCreate = async () => {
-    if (!selected || !title.trim()) return;
-    setCreating(true);
-    try {
-      const resume = await createResume({ title: title.trim(), templateId: selected });
-      addToast('Resume created!', 'success');
-      navigate(`/resumes/${resume.id}`);
-    } catch (err: any) {
-      addToast(err.response?.data?.error ?? 'Failed to create resume', 'error');
-    } finally { setCreating(false); }
-  };
 
   const previewTemplate = previewId ? templates.find((t) => t.id === previewId) : null;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Choose a Template</h1>
-      <p className="text-gray-500 mb-8">Select a template to create a new resume.</p>
+      <p className="text-gray-500 mb-8">Preview a template and download your resume as a PDF.</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {templates.map((t) => (
           <div
             key={t.id}
-            onClick={() => openModal(t.id)}
+            onClick={() => setPreviewId(t.id)}
             className="cursor-pointer rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg transition-all overflow-hidden group"
           >
             {/* Scaled iframe thumbnail */}
@@ -118,9 +90,11 @@ export function TemplatesPage() {
               <span className="text-sm text-gray-400 ml-2">— {previewTemplate.description}</span>
             </div>
             <div className="flex items-center gap-3">
-              <Button onClick={() => { setPreviewId(null); openModal(previewTemplate.id); }}>
-                Use this template
-              </Button>
+              <a href={getTemplatePdfUrl(previewTemplate.id)} download>
+                <Button>
+                  <Download size={15} /> Download PDF
+                </Button>
+              </a>
               <button
                 onClick={() => setPreviewId(null)}
                 className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
@@ -158,29 +132,6 @@ export function TemplatesPage() {
           </div>
         </div>
       )}
-
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={`Use ${templates.find((t) => t.id === selected)?.name ?? ''} Template`}
-      >
-        <p className="text-sm text-gray-500 mb-4">Give your resume a name to get started.</p>
-        <Input
-          label="Resume Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && title.trim()) handleCreate(); }}
-          placeholder="e.g. Software Engineer Resume"
-          className="mb-4"
-          autoFocus
-        />
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} loading={creating} disabled={!title.trim()}>
-            Create Resume
-          </Button>
-        </div>
-      </Modal>
     </div>
   );
 }

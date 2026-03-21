@@ -2,6 +2,9 @@ import { Router } from 'express';
 import { renderTemplate, TEMPLATE_LIST } from '../services/templates';
 import { ResumeContent } from '../services/claude';
 import { prisma } from '../config/prisma';
+import { requireAuth, getUser } from '../middleware/requireAuth';
+import { generatePdf } from '../services/pdf';
+import { profileToResumeContent } from '../utils/profileToContent';
 
 const router = Router();
 
@@ -88,7 +91,7 @@ const VALID_IDS = new Set(TEMPLATE_LIST.map((t) => t.id));
 router.get('/:id/preview', async (req, res) => {
   if (!VALID_IDS.has(req.params.id)) return res.status(404).send('<p>Template not found</p>');
 
-  let content: ResumeContent = SAMPLE;
+  let content = SAMPLE;
 
   if (req.isAuthenticated()) {
     const userId = (req.user as any).id as string;
@@ -101,56 +104,32 @@ router.get('/:id/preview', async (req, res) => {
       (profile.experiences.length > 0 || profile.educations.length > 0 || profile.skills.length > 0);
 
     if (isComplete) {
-      content = {
-        personalInfo: {
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          email: profile.email,
-          phone: profile.phone ?? undefined,
-          location: profile.location ?? undefined,
-          linkedinUrl: profile.linkedinUrl ?? undefined,
-          githubUrl: profile.githubUrl ?? undefined,
-          portfolioUrl: profile.portfolioUrl ?? undefined,
-        },
-        summary: profile.summary ?? '',
-        experiences: profile.experiences.map((e) => ({
-          company: e.company,
-          title: e.title,
-          location: e.location ?? undefined,
-          startDate: e.startDate.toISOString(),
-          endDate: e.endDate ? e.endDate.toISOString() : null,
-          isCurrent: e.isCurrent,
-          description: e.description,
-          order: e.order,
-        })),
-        educations: profile.educations.map((e) => ({
-          institution: e.institution,
-          degree: e.degree,
-          fieldOfStudy: e.fieldOfStudy ?? undefined,
-          startDate: e.startDate.toISOString(),
-          endDate: e.endDate ? e.endDate.toISOString() : null,
-          gpa: e.gpa ?? undefined,
-          order: e.order,
-        })),
-        skills: profile.skills.map((s) => ({
-          name: s.name,
-          level: s.level as any,
-          category: s.category ?? undefined,
-        })),
-        certifications: profile.certifications.map((c) => ({
-          name: c.name,
-          issuer: c.issuer,
-          issueDate: c.issueDate ? c.issueDate.toISOString() : undefined,
-          expiryDate: c.expiryDate ? c.expiryDate.toISOString() : undefined,
-          credentialUrl: c.credentialUrl ?? undefined,
-        })),
-      };
+      content = profileToResumeContent(profile);
     }
   }
 
   const html = renderTemplate(req.params.id, content);
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
+});
+
+router.get('/:id/pdf', requireAuth, async (req, res, next) => {
+  try {
+    const templateId = req.params.id as string;
+    if (!VALID_IDS.has(templateId)) return res.status(404).json({ error: 'Template not found' });
+    const userId = getUser(req).id;
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Complete your profile first' });
+    const html = renderTemplate(templateId, profileToResumeContent(profile));
+    const pdf = await generatePdf(html);
+    const templateName = TEMPLATE_LIST.find((t) => t.id === templateId)?.name ?? templateId;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${templateName}-resume.pdf"`);
+    res.send(pdf);
+  } catch (err) { next(err); }
 });
 
 export default router;

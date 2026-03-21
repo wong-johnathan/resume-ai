@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink, Link2 } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
-import { getJobs, createJob, updateJob, deleteJob } from '../api/jobs';
-import { getResumes } from '../api/resumes';
+import { getJobs, getJob, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
 import { tailorResume, streamCoverLetter, crawlUrl, analyzeFit } from '../api/ai';
-import { JobApplication, JobStatus, Resume } from '../types';
+import { JobApplication, JobStatus } from '../types';
+import { TEMPLATE_OPTIONS } from '../api/templates';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -188,7 +188,6 @@ function ManageStatusesModal({
 export function JobTrackerPage() {
   const [jobs, setJobs] = useState<JobApplication[]>([]);
   const [statuses, setStatuses] = useState<JobStatus[]>([]);
-  const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -200,7 +199,7 @@ export function JobTrackerPage() {
   const [step, setStep] = useState(0);
   const { register, handleSubmit, reset, watch, setValue } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
   const [jobDetails, setJobDetails] = useState<JobDetailsForm | null>(null);
-  const [selectedResumeId, setSelectedResumeId] = useState('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [aiTailor, setAiTailor] = useState(false);
   const [aiCoverLetter, setAiCoverLetter] = useState(false);
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
@@ -217,15 +216,13 @@ export function JobTrackerPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { if (addOpen) getResumes().then(setResumes).catch(() => {}); }, [addOpen]);
-
   const statusMap = Object.fromEntries(statuses.map((s) => [s.label, s]));
 
   const openAdd = () => {
     setStep(0);
     reset({ status: statuses[0]?.label ?? 'SAVED' });
     setJobDetails(null);
-    setSelectedResumeId('');
+    setSelectedTemplateId('');
     setAiTailor(false);
     setAiCoverLetter(false);
     setCoverLetterTone('Professional');
@@ -270,20 +267,15 @@ export function JobTrackerPage() {
     setProcessing(true);
     try {
       setProcessingLabel('Creating job application…');
-      const job = await createJob({
-        ...jobDetails,
-        resumeId: selectedResumeId || undefined,
-      } as any);
+      const job = await createJob({ ...jobDetails } as any);
 
       const hasDescription = (jobDetails.description?.trim().length ?? 0) >= 50;
-      let finalResumeId = selectedResumeId || undefined;
 
-      if (useAi && aiTailor && selectedResumeId && hasDescription) {
+      if (useAi && aiTailor && selectedTemplateId && hasDescription) {
         setProcessingLabel('Tailoring resume with Claude…');
-        await tailorResume(selectedResumeId, jobDetails.description!, job.id);
-        const refreshed = await (await import('../api/jobs')).getJob(job.id);
+        await tailorResume(selectedTemplateId, jobDetails.description!, job.id);
+        const refreshed = await getJob(job.id);
         Object.assign(job, refreshed);
-        finalResumeId = refreshed.resumeId ?? finalResumeId;
       }
 
       if (useAi && aiCoverLetter && hasDescription) {
@@ -298,7 +290,7 @@ export function JobTrackerPage() {
       if (hasDescription) {
         setProcessingLabel('Analysing your fit…');
         try {
-          const fit = await analyzeFit(jobDetails.description!, finalResumeId);
+          const fit = await analyzeFit(jobDetails.description!);
           await updateJob(job.id, { fitAnalysis: fit } as any);
         } catch {
           // non-fatal — job is already created, proceed to detail page
@@ -596,28 +588,26 @@ export function JobTrackerPage() {
               </form>
             )}
 
-            {/* Step 2: Resume */}
+            {/* Step 2: Template */}
             {step === 1 && (
               <div className="space-y-5">
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                    Select a Resume <span className="text-gray-400 font-normal">(optional)</span>
+                    Select a Template <span className="text-gray-400 font-normal">(optional — for AI tailoring)</span>
                   </label>
                   <select
-                    value={selectedResumeId}
-                    onChange={(e) => setSelectedResumeId(e.target.value)}
+                    value={selectedTemplateId}
+                    onChange={(e) => setSelectedTemplateId(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">— No resume —</option>
-                    {resumes.map((r) => (
-                      <option key={r.id} value={r.id}>{r.title} ({r.templateId})</option>
+                    <option value="">— No template —</option>
+                    {TEMPLATE_OPTIONS.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
                     ))}
                   </select>
-                  {resumes.length === 0 && (
-                    <p className="text-xs text-gray-400 mt-1">
-                      No resumes yet. <Link to="/templates" className="text-blue-500 hover:underline">Create one</Link> first.
-                    </p>
-                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    If you want Claude to tailor a resume for this job, pick a template here.
+                  </p>
                 </div>
 
                 <div className="flex justify-between gap-3 pt-2">
@@ -640,12 +630,12 @@ export function JobTrackerPage() {
                       Optionally let Claude enhance your application. You can always do this later from the job detail page.
                     </p>
 
-                    <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${aiTailor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${!selectedResumeId ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${aiTailor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${!selectedTemplateId ? 'opacity-50 cursor-not-allowed' : ''}`}>
                       <input
                         type="checkbox"
                         checked={aiTailor}
                         onChange={(e) => setAiTailor(e.target.checked)}
-                        disabled={!selectedResumeId}
+                        disabled={!selectedTemplateId}
                         className="mt-0.5 accent-blue-600"
                       />
                       <div>
@@ -653,9 +643,9 @@ export function JobTrackerPage() {
                           <FileText size={15} className="text-blue-600" /> Tailor resume to this job
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {selectedResumeId
-                            ? "Claude will rewrite your resume's summary and experience bullets to match this job's keywords."
-                            : 'Select a resume in the previous step to enable this.'}
+                          {selectedTemplateId
+                            ? "Claude will build and tailor a resume from your profile to match this job's keywords."
+                            : 'Select a template in the previous step to enable this.'}
                         </p>
                       </div>
                     </label>
