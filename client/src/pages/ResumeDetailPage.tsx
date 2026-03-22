@@ -28,7 +28,10 @@ export function ResumeDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (id) getResume(id).then((r) => { setResume(r); setStatus(r.status); }).catch(() => {});
+    if (id) {
+      setActiveTab('preview');
+      getResume(id).then((r) => { setResume(r); setStatus(r.status); }).catch(() => {});
+    }
   }, [id]);
 
   const handleStatusChange = async (newStatus: Resume['status']) => {

@@ -56,14 +56,14 @@ export function TailorChangesPanel({ changes, source, current }: Props) {
       </div>
 
       {/* Experience sections */}
-      {changes.experiences.map((exp) => {
+      {changes.experiences.map((exp, i) => {
         const sourceExp = source.experiences[exp.index];
         const currentExp =
           current.experiences.find((e) => e.company === exp.company && e.title === exp.title) ??
           current.experiences[exp.index];
         const changedBullets = exp.bulletChanges.filter((b) => b.type !== 'unchanged');
         return (
-          <div key={exp.index} className="bg-white border rounded-xl p-4 shadow-sm">
+          <div key={`exp-${i}-${exp.index}`} className="bg-white border rounded-xl p-4 shadow-sm">
             <h3 className="font-semibold text-sm text-gray-900">{exp.title}</h3>
             <p className="text-xs text-gray-400 mb-1">{exp.company}</p>
             <p className="text-xs text-gray-500 mb-3">{exp.sectionSummary}</p>
