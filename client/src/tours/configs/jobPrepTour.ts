@@ -12,7 +12,7 @@ export const jobPrepTour: TourConfig = {
     {
       selector: '[data-tour="prepare-btn"]',
       title: 'Generate Question Categories',
-      body: 'Click "Prepare for Interview" to let Claude analyse the job description and suggest relevant interview question categories.',
+      body: 'Click "Prepare for Interview" to let AI analyse the job description and suggest relevant interview question categories.',
       placement: 'bottom',
       autoAdvanceWhenSelector: '[data-tour="category-selector"]',
     },

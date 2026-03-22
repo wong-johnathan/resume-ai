@@ -264,14 +264,14 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
       const hasDescription = (jobDetails.description?.trim().length ?? 0) >= 50;
 
       if (useAi && aiTailor && selectedTemplateId && hasDescription) {
-        setProcessingLabel('Tailoring resume with Claude…');
+        setProcessingLabel('Tailoring resume with AI…');
         await tailorResume(selectedTemplateId, jobDetails.description!, job.id);
         const refreshed = await getJob(job.id);
         Object.assign(job, refreshed);
       }
 
       if (useAi && aiCoverLetter && hasDescription) {
-        setProcessingLabel('Generating cover letter with Claude…');
+        setProcessingLabel('Generating cover letter with AI…');
         const generated = await streamToString(jobDetails.description!, coverLetterTone);
         if (generated.trim()) {
           await updateJob(job.id, { coverLetter: generated } as any);
@@ -599,7 +599,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                     ))}
                   </select>
                   <p className="text-xs text-gray-400 mt-1">
-                    If you want Claude to tailor a resume for this job, pick a template here.
+                    If you want AI to tailor a resume for this job, pick a template here.
                   </p>
                 </div>
 
@@ -620,7 +620,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                 ) : (
                   <>
                     <p className="text-sm text-gray-500">
-                      Optionally let Claude enhance your application. You can always do this later from the job detail page.
+                      Optionally let AI enhance your application. You can always do this later from the job detail page.
                     </p>
 
                     <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${aiTailor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${!selectedTemplateId ? 'opacity-50 cursor-not-allowed' : ''}`}>
@@ -637,7 +637,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {selectedTemplateId
-                            ? "Claude will build and tailor a resume from your profile to match this job's keywords."
+                            ? "AI will build and tailor a resume from your profile to match this job's keywords."
                             : 'Select a template in the previous step to enable this.'}
                         </p>
                       </div>
@@ -655,7 +655,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                           <Sparkles size={15} className="text-purple-600" /> Generate cover letter with AI
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          Claude will write a personalized cover letter based on your profile and this job description.
+                          AI will write a personalized cover letter based on your profile and this job description.
                         </p>
                         {aiCoverLetter && (
                           <div className="mt-3">
