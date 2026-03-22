@@ -30,13 +30,13 @@ function SideBySide({ left, right, label }: { left: string; right: string; label
         <div className={`text-xs p-2.5 rounded-lg border ${changed ? 'bg-red-50 border-red-100 text-red-900' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-gray-400">Before</p>
           {left
-          ? <div className="leading-relaxed prose prose-xs max-w-none" dangerouslySetInnerHTML={{ __html: left }} />
+          ? <div className="leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5 [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: left }} />
           : <em className="text-gray-400">—</em>}
         </div>
         <div className={`text-xs p-2.5 rounded-lg border ${changed ? 'bg-green-50 border-green-100 text-green-900' : 'bg-gray-50 border-gray-100 text-gray-700'}`}>
           <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-gray-400">After</p>
           {right
-          ? <div className="leading-relaxed prose prose-xs max-w-none" dangerouslySetInnerHTML={{ __html: right }} />
+          ? <div className="leading-relaxed [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5 [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: right }} />
           : <em className="text-gray-400">—</em>}
         </div>
       </div>
