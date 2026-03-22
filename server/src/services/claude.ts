@@ -43,6 +43,26 @@ export interface ResumeContent {
   }>;
 }
 
+// ─── Interview Prep ───────────────────────────────────────────────────────────
+
+export interface InterviewFeedback {
+  strengths: string[];
+  improvements: string[];
+  sampleResponse: string;
+}
+
+export interface InterviewQuestion {
+  question: string;
+  userAnswer?: string;
+  feedback?: InterviewFeedback;
+}
+
+export interface InterviewCategory {
+  name: string;
+  questionCount: number;
+  questions: InterviewQuestion[];
+}
+
 // ─── Resume Tailoring ────────────────────────────────────────────────────────
 
 export async function tailorResume(contentJson: ResumeContent, jobDescription: string): Promise<ResumeContent> {
@@ -326,4 +346,123 @@ Target role: "${targetRole}"`,
   });
 
   return response.choices[0].message.content?.trim() ?? currentSummary;
+}
+
+// ─── Generate Interview Categories ───────────────────────────────────────────
+
+export async function generateInterviewCategories(
+  jobDescription: string,
+  profile: {
+    summary?: string | null;
+    experiences: Array<{ title: string; company: string }>;
+    skills: Array<{ name: string }>;
+  }
+): Promise<string[]> {
+  const skillNames = profile.skills.map((s) => s.name).join(', ');
+  const recentRoles = profile.experiences
+    .slice(0, 3)
+    .map((e) => `${e.title} at ${e.company}`)
+    .join('; ');
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    max_tokens: 300,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an interview coach. Given a job description and candidate background, return a JSON object with a "categories" array of 4–8 interview category names relevant to the role. Examples: "Behavioral", "System Design", "JavaScript", "Java", "Leadership", "Technical Problem Solving", "SQL", "React". Only include categories that are genuinely relevant.',
+      },
+      {
+        role: 'user',
+        content: `Job Description:\n${jobDescription}\n\nCandidate Skills: ${skillNames}\nRecent Roles: ${recentRoles}\nSummary: ${profile.summary ?? 'N/A'}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(completion.choices[0].message.content ?? '{}');
+  return Array.isArray(parsed.categories) ? parsed.categories : [];
+}
+
+// ─── Generate Interview Questions ─────────────────────────────────────────────
+
+export async function generateInterviewQuestions(
+  jobDescription: string,
+  profile: {
+    summary?: string | null;
+    experiences: Array<{ title: string; company: string; description: string }>;
+    skills: Array<{ name: string }>;
+  },
+  selections: Array<{ name: string; questionCount: number }>
+): Promise<Array<{ name: string; questions: InterviewQuestion[] }>> {
+  const skillNames = profile.skills.map((s) => s.name).join(', ');
+  const recentRoles = profile.experiences
+    .slice(0, 3)
+    .map((e) => `${e.title} at ${e.company}: ${e.description?.slice(0, 200) ?? ''}`)
+    .join('\n');
+
+  const categoryInstructions = selections
+    .map((s) => `- "${s.name}": exactly ${s.questionCount} questions`)
+    .join('\n');
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    max_tokens: 2000,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are an expert interview coach. Generate tailored interview questions for a candidate based on their background and a specific job description. Return a JSON object with a "categories" array, each item having "name" (string) and "questions" (string array of question text only). Questions should be specific, actionable, and relevant to both the role and the candidate\'s experience.',
+      },
+      {
+        role: 'user',
+        content: `Job Description:\n${jobDescription}\n\nCandidate Skills: ${skillNames}\nRecent Experience:\n${recentRoles}\nSummary: ${profile.summary ?? 'N/A'}\n\nGenerate questions for these categories:\n${categoryInstructions}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(completion.choices[0].message.content ?? '{}');
+  const raw: Array<{ name: string; questions: string[] }> = Array.isArray(parsed.categories)
+    ? parsed.categories
+    : [];
+  // Wrap each question string into InterviewQuestion shape
+  return raw.map((cat) => ({
+    name: cat.name,
+    questions: cat.questions.map((q) => ({ question: q })),
+  }));
+}
+
+// ─── Evaluate Interview Answer ────────────────────────────────────────────────
+
+export async function evaluateInterviewAnswer(
+  question: string,
+  userAnswer: string,
+  jobDescription: string,
+  categoryName: string
+): Promise<InterviewFeedback> {
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    max_tokens: 800,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a senior interview coach evaluating a candidate\'s answer. Return a JSON object with: "strengths" (string array of 2-3 things done well), "improvements" (string array of 2-3 specific areas to improve or expand), and "sampleResponse" (a single string with a stronger, more tailored version of the answer — 3-5 sentences). Be honest but encouraging.',
+      },
+      {
+        role: 'user',
+        content: `Job Description:\n${jobDescription}\n\nCategory: ${categoryName}\nQuestion: ${question}\n\nCandidate Answer:\n${userAnswer}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(completion.choices[0].message.content ?? '{}');
+  return {
+    strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+    improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+    sampleResponse: parsed.sampleResponse ?? '',
+  };
 }
