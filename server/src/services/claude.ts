@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { z } from 'zod';
 import { env } from '../config/env';
 
 const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
@@ -43,6 +44,83 @@ export interface ResumeContent {
   }>;
 }
 
+// ─── Tailor Result Types ──────────────────────────────────────────────────────
+
+export interface BulletChange {
+  type: 'reworded' | 'added' | 'removed' | 'unchanged';
+  original: string | null;
+  rewritten: string | null;
+  reason: string;
+}
+
+export interface SkillChange {
+  type: 'added' | 'removed' | 'reordered' | 'unchanged';
+  name: string;
+  reason: string;
+}
+
+export interface ExperienceChange {
+  index: number;
+  company: string;
+  title: string;
+  sectionSummary: string;
+  bulletChanges: BulletChange[];
+}
+
+export interface TailorChanges {
+  overallSummary: string;
+  summary: {
+    sectionSummary: string;
+    original: string;
+    rewritten: string;
+  };
+  experiences: ExperienceChange[];
+  skills: {
+    sectionSummary: string;
+    skillChanges: SkillChange[];
+  };
+}
+
+export interface TailorResult {
+  tailored: ResumeContent;
+  changes: TailorChanges;
+}
+
+// ─── Tailor Result Zod Schema ─────────────────────────────────────────────────
+
+const bulletChangeSchema = z.object({
+  type: z.enum(['reworded', 'added', 'removed', 'unchanged']),
+  original: z.string().nullable(),
+  rewritten: z.string().nullable(),
+  reason: z.string(),
+});
+
+const experienceChangeSchema = z.object({
+  index: z.number().int().min(0),
+  company: z.string(),
+  title: z.string(),
+  sectionSummary: z.string(),
+  bulletChanges: z.array(bulletChangeSchema),
+});
+
+const tailorChangesSchema = z.object({
+  overallSummary: z.string(),
+  summary: z.object({
+    sectionSummary: z.string(),
+    original: z.string(),
+    rewritten: z.string(),
+  }),
+  experiences: z.array(experienceChangeSchema),
+  skills: z.object({
+    sectionSummary: z.string(),
+    skillChanges: z.array(z.object({
+      type: z.enum(['added', 'removed', 'reordered', 'unchanged']),
+      name: z.string(),
+      reason: z.string(),
+    })),
+  }),
+});
+
 // ─── Interview Prep ───────────────────────────────────────────────────────────
 
 export interface InterviewFeedback {
@@ -65,33 +143,96 @@ export interface InterviewCategory {
 
 // ─── Resume Tailoring ────────────────────────────────────────────────────────
 
-export async function tailorResume(contentJson: ResumeContent, jobDescription: string): Promise<ResumeContent> {
-  const prompt = `You are an expert resume writer and career coach. Tailor the following resume to better match the job description. Rules:
-1. Rewrite the professional summary to align with this role.
-2. Enhance experience bullet points to emphasize relevant skills and accomplishments using keywords from the JD.
-3. Reorder skills to surface the most relevant ones first.
-4. NEVER fabricate skills, experience, or achievements the candidate does not have.
-5. Return ONLY valid JSON matching the exact same schema as the input. No markdown, no explanation.
+export async function tailorResume(contentJson: ResumeContent, jobDescription: string): Promise<TailorResult> {
+  const systemPrompt = `You are an expert resume writer and ATS optimization specialist. Your job is to tailor a resume to a specific job description.
 
-Resume JSON:
+PROCESS (follow in order):
+1. READ the job description carefully. Extract: required skills, preferred skills, key responsibilities, seniority signals, and exact keywords used.
+2. REWRITE the professional summary in 2-3 sentences that directly address the role's core ask and incorporate top keywords.
+3. FOR EACH experience entry: rewrite bullet points to quantify impact and surface JD-relevant keywords — ONLY where the candidate's actual experience supports it. Never invent or fabricate anything.
+4. REORDER skills so the most JD-relevant ones appear first. Remove skills that are clearly irrelevant noise.
+5. PRODUCE the output JSON with both the tailored resume content and a detailed change log.
+
+RULES:
+- NEVER fabricate skills, experience, achievements, companies, dates, or credentials the candidate does not have.
+- Rewrite based on emphasis and framing of real facts — not invention.
+- Every change must have a specific, actionable reason tied to the job description.
+- Unchanged content is still listed in the changelog with type "unchanged".`;
+
+  const userPrompt = `Tailor this resume for the job description below. Return a JSON object matching this exact schema:
+
+{
+  "tailored": { /* Same structure as the input resume — all fields preserved, content rewritten where appropriate */ },
+  "changes": {
+    "overallSummary": "One sentence describing total changes made and the target role",
+    "summary": {
+      "sectionSummary": "Why the summary was rewritten",
+      "original": "The original summary text",
+      "rewritten": "The new summary text"
+    },
+    "experiences": [
+      {
+        "index": 0,
+        "company": "Company Name",
+        "title": "Job Title",
+        "sectionSummary": "Brief description of changes to this entry",
+        "bulletChanges": [
+          {
+            "type": "reworded",
+            "original": "original bullet text",
+            "rewritten": "new bullet text",
+            "reason": "Specific reason tied to JD — e.g. 'JD requires cross-functional leadership, reframed to highlight team coordination'"
+          }
+        ]
+      }
+    ],
+    "skills": {
+      "sectionSummary": "How skills were reordered/filtered",
+      "skillChanges": [
+        {
+          "type": "reordered",
+          "name": "React",
+          "reason": "JD lists React as a primary requirement — moved to top"
+        }
+      ]
+    }
+  }
+}
+
+RESUME JSON:
 ${JSON.stringify(contentJson, null, 2)}
 
-Job Description:
+JOB DESCRIPTION:
 ${jobDescription}`;
 
-  async function attempt(): Promise<ResumeContent> {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 6000,
-      response_format: { type: 'json_object' },
-      messages: [{ role: 'user', content: prompt }],
-    });
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4.1',
+    max_tokens: 8000,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
+  });
 
-    const text = response.choices[0].message.content ?? '';
-    return JSON.parse(text) as ResumeContent;
+  const raw = response.choices[0].message.content ?? '';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('AI returned invalid JSON during resume tailoring');
   }
 
-  return await attempt();
+  const result = parsed as { tailored: unknown; changes: unknown };
+
+  const changes = tailorChangesSchema.parse(result.changes);
+  const tailored = result.tailored as ResumeContent;
+
+  if (!tailored || typeof tailored !== 'object') {
+    throw new Error('AI returned malformed tailored resume content');
+  }
+
+  return { tailored, changes };
 }
 
 // ─── Cover Letter (streaming) ─────────────────────────────────────────────────
