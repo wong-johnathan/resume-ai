@@ -137,6 +137,7 @@ export interface InterviewQuestion {
   question: string;
   userAnswer?: string;
   feedback?: InterviewFeedback;
+  sampleResponse?: string;
 }
 
 export interface InterviewCategory {
