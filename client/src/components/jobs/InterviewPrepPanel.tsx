@@ -9,6 +9,8 @@ import {
   generateQuestions,
 } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
+import { useTour } from '../../hooks/useTour';
+import { TakeTourButton } from '../tour/TakeTourButton';
 
 interface Props {
   jobId: string;
@@ -25,6 +27,8 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
     queryKey: ['interviewPrep', jobId],
     queryFn: () => getInterviewPrep(jobId),
   });
+
+  useTour('job-prep'); // auto-starts tour on first visit
 
   const [step, setStep] = useState<Step>('idle');
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
@@ -66,10 +70,13 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
 
 
   return (
-    <div className="bg-white rounded-xl border shadow-sm p-5">
+    <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="prep-panel">
       <div className="flex items-center gap-2 mb-4">
         <Briefcase className="h-5 w-5 text-blue-600" />
         <h2 className="text-base font-semibold text-gray-900">Interview Prep</h2>
+        <div className="ml-auto">
+          <TakeTourButton tourId="job-prep" />
+        </div>
       </div>
 
       {isLoading ? (
@@ -91,6 +98,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
               <button
                 onClick={handleStartPrep}
                 disabled={loadingCategories}
+                data-tour="prepare-btn"
                 className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loadingCategories ? 'Analyzing job…' : 'Prepare for Interview'}
@@ -99,11 +107,13 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
           )}
         </div>
       ) : step === 'selecting' ? (
-        <InterviewCategorySelector
-          categories={suggestedCategories}
-          onGenerate={handleGenerate}
-          generating={generatingQuestions}
-        />
+        <div data-tour="category-selector">
+          <InterviewCategorySelector
+            categories={suggestedCategories}
+            onGenerate={handleGenerate}
+            generating={generatingQuestions}
+          />
+        </div>
       ) : existingPrep ? (
         <InterviewQuestionsView
           jobId={jobId}

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { ToastContainer } from '../ui/Toast';
+import { TourOverlay } from '../tour/TourOverlay';
 import { useAppStore } from '../../store/useAppStore';
 
 export function AppLayout() {
@@ -51,6 +52,7 @@ export function AppLayout() {
       </div>
 
       <ToastContainer />
+      <TourOverlay />
     </div>
   );
 }

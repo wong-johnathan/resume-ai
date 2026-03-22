@@ -16,6 +16,7 @@ import jobStatusesRouter from './routes/jobStatuses';
 import aiRouter from './routes/ai';
 import templatesRouter from './routes/templates';
 import interviewPrepRouter from './routes/interviewPrep';
+import toursRouter from './routes/tours';
 
 const PgSession = connectPgSimple(session);
 
@@ -62,6 +63,7 @@ export function createApp() {
   app.use('/api/ai', aiRouter);
   app.use('/api/templates', templatesRouter);
   app.use('/api/interview-prep', interviewPrepRouter);
+  app.use('/api/tours', toursRouter);
 
   app.use(errorHandler);
 

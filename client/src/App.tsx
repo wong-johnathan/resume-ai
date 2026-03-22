@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
+import { TourProvider } from './context/TourContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { ProfileGate } from './components/layout/ProfileGate';
 import { AppLayout } from './components/layout/AppLayout';
@@ -23,26 +24,28 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              {/* Accessible without a profile */}
-              <Route path="/setup" element={<SetupPage />} />
-              {/* All other routes require a profile */}
-              <Route element={<ProfileGate />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/templates" element={<TemplatesPage />} />
-                <Route path="/resumes/:id/edit" element={<ResumeEditPage />} />
-                <Route path="/resumes/:id" element={<ResumeDetailPage />} />
-                <Route path="/jobs" element={<JobTrackerPage />} />
-                <Route path="/jobs/:id" element={<JobDetailPage />} />
-                <Route path="/jobs/:id/prep" element={<JobPrepPage />} />
+          <TourProvider>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                {/* Accessible without a profile */}
+                <Route path="/setup" element={<SetupPage />} />
+                {/* All other routes require a profile */}
+                <Route element={<ProfileGate />}>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
+                  <Route path="/templates" element={<TemplatesPage />} />
+                  <Route path="/resumes/:id/edit" element={<ResumeEditPage />} />
+                  <Route path="/resumes/:id" element={<ResumeDetailPage />} />
+                  <Route path="/jobs" element={<JobTrackerPage />} />
+                  <Route path="/jobs/:id" element={<JobDetailPage />} />
+                  <Route path="/jobs/:id/prep" element={<JobPrepPage />} />
+                </Route>
               </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </TourProvider>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
