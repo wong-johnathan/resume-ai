@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
-import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, InterviewCategory, InterviewFeedback } from '../services/claude';
+import { tailorResume, TailorChanges, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
 
 const router = Router();
@@ -50,20 +50,39 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
-    const tailoredContent = await tailorResume(profileToResumeContent(profile), req.body.jobDescription);
+    const profileContent = profileToResumeContent(profile);
 
-    // Create a tailored resume with the selected template
+    // Determine source snapshot:
+    // - If the job already has a linked resume, snapshot that resume's content (re-tailor diff)
+    // - Otherwise, snapshot the profile-derived content (first tailor diff)
+    let tailorSourceSnapshot: object = profileContent;
+    if (req.body.jobId) {
+      const existingJob = await prisma.jobApplication.findFirst({
+        where: { id: req.body.jobId, userId },
+        include: { resume: true },
+      });
+      if (existingJob?.resume?.contentJson) {
+        tailorSourceSnapshot = existingJob.resume.contentJson as object;
+      }
+    }
+
+    // Call AI — returns { tailored, changes }
+    const { tailored, changes } = await tailorResume(profileContent, req.body.jobDescription);
+
+    // Create tailored resume clone
     const clone = await prisma.resume.create({
       data: {
         userId,
-        title: `Tailored Resume`,
+        title: 'Tailored Resume',
         templateId: req.body.templateId,
-        contentJson: tailoredContent as any,
+        contentJson: tailored as any,
         tailoredFor: req.body.jobId ?? 'job',
+        tailorChanges: changes as any,
+        tailorSourceSnapshot: tailorSourceSnapshot as any,
       },
     });
 
-    // Link the clone to the job application and record the amendment
+    // Link clone to job application and record the amendment
     if (req.body.jobId) {
       await prisma.jobApplication.updateMany({
         where: { id: req.body.jobId, userId },
