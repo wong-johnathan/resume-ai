@@ -1,19 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Download, ArrowLeft, FileText, RefreshCw, Pencil } from 'lucide-react';
-import { getResume, getPdfUrl, getPreviewUrl, updateResume } from '../api/resumes';
+import { getResume, getPdfUrl, getPreviewUrl } from '../api/resumes';
 import { Resume } from '../types';
 import { Button } from '../components/ui/Button';
-import { Select } from '../components/ui/Select';
-import { useAppStore } from '../store/useAppStore';
 import { TailorChangesPanel } from '../components/resume/TailorChangesPanel';
 
 export function ResumeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToast } = useAppStore();
   const [resume, setResume] = useState<Resume | null>(null);
-  const [status, setStatus] = useState<Resume['status']>('DRAFT');
   const [previewKey, setPreviewKey] = useState(0);
   const [activeTab, setActiveTab] = useState<'preview' | 'changes'>('preview');
 
@@ -30,16 +26,9 @@ export function ResumeDetailPage() {
   useEffect(() => {
     if (id) {
       setActiveTab('preview');
-      getResume(id).then((r) => { setResume(r); setStatus(r.status); }).catch(() => {});
+      getResume(id).then((r) => { setResume(r); }).catch(() => {});
     }
   }, [id]);
-
-  const handleStatusChange = async (newStatus: Resume['status']) => {
-    if (!resume) return;
-    setStatus(newStatus);
-    await updateResume(resume.id, { status: newStatus });
-    addToast('Status updated', 'success');
-  };
 
   if (!resume) return <div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>;
 
@@ -64,16 +53,6 @@ export function ResumeDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0 pl-7 sm:pl-0">
-          <Select
-            options={[
-              { value: 'DRAFT', label: 'Draft' },
-              { value: 'FINAL', label: 'Final' },
-              { value: 'ARCHIVED', label: 'Archived' },
-            ]}
-            value={status}
-            onChange={(e) => handleStatusChange(e.target.value as Resume['status'])}
-            className="w-28 sm:w-32"
-          />
           <Button variant="secondary" onClick={() => navigate(`/resumes/${resume.id}/edit`)}>
             <Pencil size={15} /> <span className="hidden sm:inline">Edit Content</span>
           </Button>
