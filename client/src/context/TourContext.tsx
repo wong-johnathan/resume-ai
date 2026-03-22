@@ -95,10 +95,13 @@ export function TourProvider({ children }: { children: ReactNode }) {
       clearTimeout(measureTimeoutRef.current);
       measureTimeoutRef.current = null;
     }
+    if (activeTourId) {
+      completeMutation.mutate(activeTourId);
+    }
     setActiveTourId(null);
     setActiveStepIndex(0);
     setTargetRect(null);
-  }, []);
+  }, [activeTourId, completeMutation]);
 
   const measureTarget = useCallback((selector: string) => {
     measureAttempts.current = 0;
@@ -123,7 +126,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
       } else {
         // Element not found after max retries (e.g. conditionally-rendered card absent) — skip step
         if (activeConfig && activeStepIndex >= activeConfig.steps.length - 1) {
-          completeMutation.mutate(activeTourId as TourId);
           endTour();
         } else {
           setActiveStepIndex((i) => i + 1);
@@ -131,7 +133,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       }
     };
     attempt();
-  }, [activeConfig, activeStepIndex, activeTourId, completeMutation, endTour]);
+  }, [activeConfig, activeStepIndex, activeTourId, endTour]);
 
   // When step changes, measure the new target element
   useEffect(() => {
@@ -167,10 +169,8 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [activeTourId]);
 
   const completeTour = useCallback(() => {
-    if (!activeTourId) return;
-    completeMutation.mutate(activeTourId);
     endTour();
-  }, [activeTourId, completeMutation, endTour]);
+  }, [endTour]);
 
   const resetTour = useCallback((tourId: TourId) => {
     resetMutation.mutate(tourId);
