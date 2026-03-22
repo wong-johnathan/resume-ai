@@ -156,8 +156,7 @@ PROCESS (follow in order):
 RULES:
 - NEVER fabricate skills, experience, achievements, companies, dates, or credentials the candidate does not have.
 - Rewrite based on emphasis and framing of real facts — not invention.
-- Every change must have a specific, actionable reason tied to the job description.
-- Unchanged content is still listed in the changelog with type "unchanged".`;
+- Every change must have a specific, actionable reason tied to the job description.`;
 
   const userPrompt = `Tailor this resume for the job description below. Return a JSON object matching this exact schema:
 
@@ -228,7 +227,14 @@ ${jobDescription}`;
   const changes = tailorChangesSchema.parse(result.changes);
   const tailored = result.tailored as ResumeContent;
 
-  if (!tailored || typeof tailored !== 'object') {
+  if (
+    !tailored ||
+    typeof tailored !== 'object' ||
+    Array.isArray(tailored) ||
+    !('personalInfo' in tailored) ||
+    !('experiences' in tailored) ||
+    !('skills' in tailored)
+  ) {
     throw new Error('AI returned malformed tailored resume content');
   }
 
