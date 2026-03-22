@@ -367,6 +367,8 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Location</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Attachments</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Added</th>
+                <th className="text-left px-4 py-3 hidden xl:table-cell">Last updated</th>
+                <th className="text-left px-4 py-3 hidden xl:table-cell">Last updated status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -381,6 +383,8 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                   <td className="px-4 py-3 hidden sm:table-cell"><Skeleton className="h-3.5 w-24" /></td>
                   <td className="px-4 py-3 hidden md:table-cell"><Skeleton className="h-3.5 w-16" /></td>
                   <td className="px-4 py-3 hidden lg:table-cell"><Skeleton className="h-3.5 w-20" /></td>
+                  <td className="px-4 py-3 hidden xl:table-cell"><Skeleton className="h-3.5 w-20" /></td>
+                  <td className="px-4 py-3 hidden xl:table-cell"><Skeleton className="h-3.5 w-16" /></td>
                   <td className="px-4 py-3" />
                 </tr>
               ))}
@@ -402,6 +406,8 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                 <th className="text-left px-4 py-3 hidden sm:table-cell">Location</th>
                 <th className="text-left px-4 py-3 hidden md:table-cell">Attachments</th>
                 <th className="text-left px-4 py-3 hidden lg:table-cell">Added</th>
+                <th className="text-left px-4 py-3 hidden xl:table-cell">Last updated</th>
+                <th className="text-left px-4 py-3 hidden xl:table-cell">Last updated status</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -462,6 +468,14 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                       <span className="text-xs text-gray-400">
                         {new Date(job.createdAt).toLocaleDateString()}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell">
+                      <span className="text-xs text-gray-400">
+                        {new Date(job.updatedAt).toLocaleDateString()}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 hidden xl:table-cell">
+                      <span className="text-xs text-gray-600">{job.status}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
