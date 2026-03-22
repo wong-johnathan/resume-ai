@@ -45,6 +45,7 @@ model Profile {
   portfolioUrl String?
   summary              String?  @db.Text
   summaryGenerations   Int      @default(0)
+  toursCompleted       Json     @default("{}")
   createdAt            DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
