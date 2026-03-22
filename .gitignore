@@ -7,3 +7,4 @@ dist/
 server/prisma/.schema.hash
 *.log
 .turbo/
+.worktrees/
