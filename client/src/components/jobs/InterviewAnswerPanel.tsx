@@ -103,7 +103,7 @@ export function InterviewAnswerPanel({
   ) : null;
 
   if (hasFeedback && question.feedback) {
-    const { strengths, improvements, sampleResponse } = question.feedback;
+    const { strengths, improvements, sampleResponse: feedbackSampleResponse } = question.feedback;
     return (
       <div className="mt-3 space-y-3">
         {/* User's submitted answer */}
@@ -149,13 +149,13 @@ export function InterviewAnswerPanel({
         )}
 
         {/* Sample response from feedback */}
-        {sampleResponse && (
+        {feedbackSampleResponse && (
           <div className="bg-blue-50 rounded-lg p-3">
             <div className="flex items-center gap-1.5 mb-2">
               <Lightbulb className="h-4 w-4 text-blue-600" />
               <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Stronger response</span>
             </div>
-            <p className="text-sm text-blue-800 leading-relaxed">{sampleResponse}</p>
+            <p className="text-sm text-blue-800 leading-relaxed">{feedbackSampleResponse}</p>
           </div>
         )}
 
