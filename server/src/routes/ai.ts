@@ -469,6 +469,24 @@ router.post(
         return res.status(404).json({ error: 'Job not found or has no description' });
       }
 
+      // Check before the AI call so we don't waste a generation
+      const prep = await prisma.interviewPrep.findFirst({
+        where: { jobId, userId: user.id },
+      });
+      if (!prep) {
+        return res.status(404).json({ error: 'Interview prep not found' });
+      }
+
+      const categories = prep.categories as unknown as InterviewCategory[];
+      const category = categories.find((c) => c.name === categoryName);
+      if (!category || !category.questions[questionIndex]) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      if ((category.questions[questionIndex] as any).sampleResponse) {
+        return res.status(409).json({ error: 'Sample response already generated for this question' });
+      }
+
       const profile = await prisma.profile.findFirst({
         where: { userId: user.id },
         include: {
@@ -487,20 +505,6 @@ router.post(
           skills: profile?.skills ?? [],
         }
       );
-
-      // Ownership verified above. Load prep scoped to same user.
-      const prep = await prisma.interviewPrep.findFirst({
-        where: { jobId, userId: user.id },
-      });
-      if (!prep) {
-        return res.status(404).json({ error: 'Interview prep not found' });
-      }
-
-      const categories = prep.categories as unknown as InterviewCategory[];
-      const category = categories.find((c) => c.name === categoryName);
-      if (!category || !category.questions[questionIndex]) {
-        return res.status(404).json({ error: 'Question not found' });
-      }
 
       (category.questions[questionIndex] as any).sampleResponse = sampleResponse;
 
