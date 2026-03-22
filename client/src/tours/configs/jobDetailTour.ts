@@ -6,7 +6,7 @@ export const jobDetailTour: TourConfig = {
     {
       selector: '[data-tour="job-description"]',
       title: 'Job Description',
-      body: 'Paste the full job description here. It powers AI tailoring, cover letter generation, and fit analysis.',
+      body: 'This is a reference view of the job description. The AI uses it for tailoring, quizzes, and fit analysis. To make changes, click “Edit” button located on the top right.',
       placement: 'top',
     },
     {
