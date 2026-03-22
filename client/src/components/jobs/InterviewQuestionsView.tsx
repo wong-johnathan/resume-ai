@@ -44,8 +44,15 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, h
   const toggleCategory = (name: string) => {
     setOpenCategories((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (next.has(name)) {
+        next.delete(name);
+        if (addingQuestionTo === name) {
+          setAddingQuestionTo(null);
+          setNewQuestion('');
+        }
+      } else {
+        next.add(name);
+      }
       return next;
     });
   };
