@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react';
 import { InterviewQuestion, InterviewFeedback } from '../../types';
-import { submitAnswer, clearAnswer } from '../../api/interviewPrep';
+import { submitAnswer, clearAnswer, generateSampleResponse } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
 
 interface Props {
@@ -9,8 +9,10 @@ interface Props {
   categoryName: string;
   questionIndex: number;
   question: InterviewQuestion;
+  hasDescription: boolean;
   onAnswerSaved: (feedback: InterviewFeedback, answer: string) => void;
   onCleared: () => void;
+  onSampleResponseGenerated: (sampleResponse: string) => void;
 }
 
 export function InterviewAnswerPanel({
@@ -18,13 +20,16 @@ export function InterviewAnswerPanel({
   categoryName,
   questionIndex,
   question,
+  hasDescription,
   onAnswerSaved,
   onCleared,
+  onSampleResponseGenerated,
 }: Props) {
   const addToast = useAppStore((s) => s.addToast);
   const [draft, setDraft] = useState(question.userAnswer ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [generatingSample, setGeneratingSample] = useState(false);
 
   const hasFeedback = !!question.feedback;
 
@@ -59,6 +64,43 @@ export function InterviewAnswerPanel({
       setClearing(false);
     }
   };
+
+  const handleGenerateSample = async () => {
+    setGeneratingSample(true);
+    try {
+      const { sampleResponse } = await generateSampleResponse({
+        jobId,
+        categoryName,
+        questionIndex,
+        question: question.question,
+      });
+      onSampleResponseGenerated(sampleResponse);
+    } catch {
+      addToast('Failed to generate sample response. Please try again.', 'error');
+    } finally {
+      setGeneratingSample(false);
+    }
+  };
+
+  const sampleResponseCard = question.sampleResponse ? (
+    <div className="bg-blue-50 rounded-lg p-3">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Lightbulb className="h-4 w-4 text-blue-600" />
+        <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Sample response</span>
+      </div>
+      <p className="text-sm text-blue-800 leading-relaxed">{question.sampleResponse}</p>
+    </div>
+  ) : null;
+
+  const generateSampleButton = hasDescription && !question.sampleResponse ? (
+    <button
+      onClick={handleGenerateSample}
+      disabled={generatingSample}
+      className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+    >
+      {generatingSample ? 'Generating…' : 'Generate sample response'}
+    </button>
+  ) : null;
 
   if (hasFeedback && question.feedback) {
     const { strengths, improvements, sampleResponse } = question.feedback;
@@ -106,7 +148,7 @@ export function InterviewAnswerPanel({
           </div>
         )}
 
-        {/* Sample response */}
+        {/* Sample response from feedback */}
         {sampleResponse && (
           <div className="bg-blue-50 rounded-lg p-3">
             <div className="flex items-center gap-1.5 mb-2">
@@ -126,6 +168,10 @@ export function InterviewAnswerPanel({
           <RefreshCw className="h-3.5 w-3.5" />
           {clearing ? 'Clearing…' : 'Try again'}
         </button>
+
+        {/* Sample response (independently generated) */}
+        {sampleResponseCard}
+        {generateSampleButton}
       </div>
     );
   }
@@ -147,6 +193,8 @@ export function InterviewAnswerPanel({
       >
         {submitting ? 'Getting feedback…' : 'Submit for Feedback'}
       </button>
+      {sampleResponseCard}
+      {generateSampleButton}
     </div>
   );
 }
