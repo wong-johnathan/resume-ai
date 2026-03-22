@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { prisma } from '../config/prisma';
+import { InterviewCategory } from '../services/claude';
 
 const router = Router();
 router.use(requireAuth);
@@ -42,16 +43,16 @@ router.patch('/:jobId/clear-answer', async (req, res, next) => {
     });
     if (!prep) return res.status(404).json({ error: 'Not found' });
 
-    const categories = prep.categories as any[];
-    const category = categories.find((c: any) => c.name === categoryName);
+    const categories = prep.categories as unknown as InterviewCategory[];
+    const category = categories.find((c) => c.name === categoryName);
     if (category && category.questions[questionIndex]) {
       delete category.questions[questionIndex].userAnswer;
       delete category.questions[questionIndex].feedback;
     }
 
     const updated = await prisma.interviewPrep.update({
-      where: { jobId: req.params.jobId },
-      data: { categories },
+      where: { id: prep.id },
+      data: { categories: categories as any },
     });
     res.json(updated);
   } catch (err) {
