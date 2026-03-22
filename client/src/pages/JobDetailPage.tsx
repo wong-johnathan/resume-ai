@@ -12,6 +12,8 @@ import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { useAppStore } from '../store/useAppStore';
 import { TEMPLATE_OPTIONS } from '../api/templates';
+import { useTour } from '../hooks/useTour';
+import { TakeTourButton } from '../components/tour/TakeTourButton';
 
 const AI_AMENDMENT_LIMIT = 3;
 
@@ -35,6 +37,8 @@ export function JobDetailPage() {
   const [notes, setNotes] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<(() => void) | null>(null);
+
+  useTour('job-detail');
 
   useEffect(() => {
     if (id) {
@@ -168,14 +172,17 @@ export function JobDetailPage() {
             )}
           </div>
         </div>
-        <Button variant="secondary" size="sm" onClick={openEdit}>
-          <Pencil size={14} /> Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <TakeTourButton tourId="job-detail" />
+          <Button variant="secondary" size="sm" onClick={openEdit}>
+            <Pencil size={14} /> Edit
+          </Button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <div className="md:col-span-2 space-y-4">
-          <div className="bg-white rounded-xl border shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="job-description">
             <h2 className="font-semibold text-gray-900 mb-3 text-sm">Job Description</h2>
             {job.description
               ? <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-60 overflow-y-auto">{job.description}</pre>
@@ -188,7 +195,7 @@ export function JobDetailPage() {
             const scoreColor = fa.score >= 70 ? 'text-green-700 bg-green-50 border-green-200' : fa.score >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
             const scoreLabel = fa.score >= 70 ? 'Strong Match' : fa.score >= 40 ? 'Moderate Match' : 'Weak Match';
             return (
-              <div className="bg-white rounded-xl border shadow-sm p-5">
+              <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="fit-analysis">
                 <h2 className="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-1.5">
                   <Sparkles size={14} className="text-blue-500" /> Fit Analysis
                 </h2>
@@ -230,6 +237,7 @@ export function JobDetailPage() {
           <Link
             to={`/jobs/${job.id}/prep`}
             className="flex items-center justify-between bg-white rounded-xl border shadow-sm p-5 hover:border-blue-300 transition-colors group"
+            data-tour="interview-prep-link"
           >
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-blue-600" />
@@ -238,7 +246,7 @@ export function JobDetailPage() {
             <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
           </Link>
 
-          <div className="bg-white rounded-xl border shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="job-notes">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-gray-900 text-sm">Notes</h2>
               <Button size="sm" variant="secondary" onClick={handleSaveNotes}>Save</Button>
@@ -248,7 +256,7 @@ export function JobDetailPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="job-status">
             <h2 className="font-semibold text-gray-900 text-sm mb-3">Status</h2>
             <Select
               options={statuses.map((s) => ({ value: s.label, label: s.label }))}
@@ -257,7 +265,7 @@ export function JobDetailPage() {
             />
           </div>
 
-          <div className="bg-white rounded-xl border shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="job-resume">
             <h2 className="font-semibold text-gray-900 text-sm mb-3">Resume</h2>
 
             {/* Tailored resume badge */}
@@ -362,7 +370,7 @@ export function JobDetailPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl border shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" data-tour="job-cover-letter">
             <div className="flex items-start justify-between gap-3 mb-3">
               <h2 className="font-semibold text-gray-900 text-sm shrink-0">Cover Letter</h2>
               <div className="flex items-center gap-2 flex-wrap justify-end">
