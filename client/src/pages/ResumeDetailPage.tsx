@@ -82,8 +82,8 @@ export function ResumeDetailPage() {
         </div>
       </div>
 
-      {/* Tab navigation — only shown for tailored resumes with change data */}
-      {resume.tailoredFor && resume.tailorChanges && (
+      {/* Tab navigation — only shown for tailored resumes with change data and snapshot */}
+      {resume.tailoredFor && resume.tailorChanges && resume.tailorSourceSnapshot && (
         <div className="flex border-b bg-white px-4 sm:px-6 flex-shrink-0">
           <button
             onClick={() => setActiveTab('preview')}
@@ -109,7 +109,7 @@ export function ResumeDetailPage() {
       )}
 
       {/* Preview area or Changes tab */}
-      {activeTab === 'preview' || !resume.tailoredFor || !resume.tailorChanges ? (
+      {activeTab === 'preview' || !resume.tailoredFor || !resume.tailorChanges || !resume.tailorSourceSnapshot ? (
         <div className="bg-gray-100 overflow-auto relative" style={{ minHeight: previewScale < 1 ? `${1122 * previewScale + 32}px` : 'calc(100vh - 65px)' }}>
           <button
             onClick={() => setPreviewKey((k) => k + 1)}
