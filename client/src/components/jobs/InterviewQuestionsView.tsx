@@ -108,7 +108,7 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, o
                   const qKey = `${cat.name}-${qIndex}`;
                   const isQOpen = openQuestions.has(qKey);
                   return (
-                    <div key={q.question} className="px-4 py-3">
+                    <div key={qIndex} className="px-4 py-3">
                       {/* Question row */}
                       <button
                         onClick={() => toggleQuestion(qKey)}

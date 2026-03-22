@@ -372,10 +372,10 @@ router.post(
   validateBody(
     z.object({
       jobId: z.string(),
-      categoryName: z.string(),
+      categoryName: z.string().min(1),
       questionIndex: z.number().int().min(0),
-      question: z.string(),
-      answer: z.string().min(1),
+      question: z.string().min(1),
+      answer: z.string().min(1).max(5000),
     })
   ),
   async (req, res, next) => {
@@ -397,6 +397,7 @@ router.post(
         categoryName
       );
 
+      // Ownership verified: job belongs to user (checked above). Load prep scoped to same user.
       const prep = await prisma.interviewPrep.findFirst({
         where: { jobId, userId: user.id },
       });

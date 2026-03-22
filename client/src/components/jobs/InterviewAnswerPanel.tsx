@@ -22,7 +22,7 @@ export function InterviewAnswerPanel({
   onCleared,
 }: Props) {
   const addToast = useAppStore((s) => s.addToast);
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useState(question.userAnswer ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
 
