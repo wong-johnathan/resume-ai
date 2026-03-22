@@ -120,9 +120,11 @@ model Resume {
   status      ResumeStatus @default(DRAFT)
   contentJson Json
   tailoredFor String?
-  coverLetter String?      @db.Text
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  coverLetter          String?      @db.Text
+  tailorChanges        Json?
+  tailorSourceSnapshot Json?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   jobApplications JobApplication[]
 }
