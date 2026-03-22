@@ -14,6 +14,9 @@ import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { useAppStore } from '../store/useAppStore';
 import { useForm } from 'react-hook-form';
+import { useTour } from '../hooks/useTour';
+import { TakeTourButton } from '../components/tour/TakeTourButton';
+import { useTourContext } from '../context/TourContext';
 
 type JobDetailsForm = {
   company: string;
@@ -207,6 +210,16 @@ export function JobTrackerPage() {
   const [processingLabel, setProcessingLabel] = useState('');
   const abortRef = useRef<(() => void) | null>(null);
 
+  useTour('jobs-list');
+  const { activeTourId, completeTour } = useTourContext();
+
+  // When the Add Job modal opens while the tour is active, complete the tour
+  useEffect(() => {
+    if (addOpen && activeTourId === 'jobs-list') {
+      completeTour();
+    }
+  }, [addOpen, activeTourId, completeTour]);
+
   useEffect(() => {
     Promise.all([getJobs(), getJobStatuses()])
       .then(([j, s]) => { setJobs(j); setStatuses(s); })
@@ -316,10 +329,11 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
       <div className="flex items-center justify-between mb-6 gap-3">
         <h1 className="text-2xl font-bold text-gray-900">Job Tracker</h1>
         <div className="flex gap-2 flex-shrink-0">
+          <TakeTourButton tourId="jobs-list" />
           <Button variant="secondary" onClick={() => setManageOpen(true)}>
             <Settings size={15} /> <span className="hidden sm:inline">Statuses</span>
           </Button>
-          <Button onClick={openAdd}><Plus size={16} /> <span className="hidden sm:inline">Add Job</span></Button>
+          <Button onClick={openAdd} data-tour="add-job-btn"><Plus size={16} /> <span className="hidden sm:inline">Add Job</span></Button>
         </div>
       </div>
 
