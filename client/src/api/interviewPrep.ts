@@ -35,3 +35,18 @@ export const clearAnswer = (
   api
     .patch<InterviewPrep>(`/interview-prep/${jobId}/clear-answer`, { categoryName, questionIndex })
     .then((r) => r.data);
+
+export const addQuestion = (jobId: string, categoryName: string, question: string) =>
+  api
+    .patch<InterviewPrep>(`/interview-prep/${jobId}/add-question`, { categoryName, question })
+    .then((r) => r.data);
+
+export const generateSampleResponse = (payload: {
+  jobId: string;
+  categoryName: string;
+  questionIndex: number;
+  question: string;
+}) =>
+  api
+    .post<{ sampleResponse: string; prep: InterviewPrep }>('/ai/interview-sample-response', payload)
+    .then((r) => r.data);
