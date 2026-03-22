@@ -38,7 +38,7 @@ export function JobDetailPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const abortRef = useRef<(() => void) | null>(null);
 
-  useTour('job-detail');
+  useTour('job-detail'); // auto-starts tour on first visit
 
   useEffect(() => {
     if (id) {

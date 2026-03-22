@@ -16,7 +16,6 @@ import { useAppStore } from '../store/useAppStore';
 import { useForm } from 'react-hook-form';
 import { useTour } from '../hooks/useTour';
 import { TakeTourButton } from '../components/tour/TakeTourButton';
-import { useTourContext } from '../context/TourContext';
 
 type JobDetailsForm = {
   company: string;
@@ -210,8 +209,7 @@ export function JobTrackerPage() {
   const [processingLabel, setProcessingLabel] = useState('');
   const abortRef = useRef<(() => void) | null>(null);
 
-  useTour('jobs-list');
-  const { activeTourId, completeTour } = useTourContext();
+  const { activeTourId, completeTour } = useTour('jobs-list');
 
   // When the Add Job modal opens while the tour is active, complete the tour
   useEffect(() => {
