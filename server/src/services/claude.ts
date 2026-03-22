@@ -434,6 +434,45 @@ export async function generateInterviewQuestions(
   }));
 }
 
+// ─── Generate Sample Response ─────────────────────────────────────────────────
+
+export async function generateSampleResponse(
+  question: string,
+  jobDescription: string,
+  categoryName: string,
+  profile: {
+    summary?: string | null;
+    experiences: Array<{ title: string; company: string }>;
+    skills: Array<{ name: string }>;
+  }
+): Promise<string> {
+  const skillNames = profile.skills.map((s) => s.name).join(', ');
+  const recentRoles = profile.experiences
+    .slice(0, 3)
+    .map((e) => `${e.title} at ${e.company}`)
+    .join('; ');
+
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    response_format: { type: 'json_object' },
+    max_tokens: 600,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a senior interview coach. Generate an ideal sample answer for the given interview question, tailored to the candidate\'s background and the job description. Return a JSON object with a single "sampleResponse" string field. The response should be 3–5 sentences, concrete, and use the STAR method where appropriate.',
+      },
+      {
+        role: 'user',
+        content: `Job Description:\n${jobDescription}\n\nCategory: ${categoryName}\nQuestion: ${question}\n\nCandidate Skills: ${skillNames}\nRecent Roles: ${recentRoles}\nSummary: ${profile.summary ?? 'N/A'}`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(completion.choices[0].message.content ?? '{}');
+  return typeof parsed.sampleResponse === 'string' ? parsed.sampleResponse : '';
+}
+
 // ─── Evaluate Interview Answer ────────────────────────────────────────────────
 
 export async function evaluateInterviewAnswer(

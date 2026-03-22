@@ -66,4 +66,44 @@ router.patch(
   }
 );
 
+// PATCH /api/interview-prep/:jobId/add-question
+router.patch(
+  '/:jobId/add-question',
+  validateBody(z.object({ categoryName: z.string().min(1), question: z.string().min(1) })),
+  async (req, res, next) => {
+    try {
+      const user = getUser(req);
+      const { categoryName, question } = req.body;
+
+      const prep = await prisma.interviewPrep.findFirst({
+        where: { jobId: req.params.jobId as string, userId: user.id },
+      });
+      if (!prep) return res.status(404).json({ error: 'Interview prep not found' });
+
+      const categories = prep.categories as unknown as InterviewCategory[];
+      let category = categories.find((c) => c.name === categoryName);
+
+      if (!category) {
+        // Auto-create a new custom category
+        const newCat = { name: categoryName, questionCount: 0, questions: [], isCustom: true } as any;
+        categories.push(newCat);
+        category = newCat as InterviewCategory;
+      }
+
+      const resolvedCategory = category;
+      (resolvedCategory.questions as any[]).push({ question, isCustom: true });
+      resolvedCategory.questionCount = resolvedCategory.questions.length;
+
+      const updated = await prisma.interviewPrep.update({
+        where: { id: prep.id },
+        data: { categories: categories as any },
+      });
+
+      res.json(updated);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
