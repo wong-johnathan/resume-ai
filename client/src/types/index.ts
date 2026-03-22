@@ -149,6 +149,7 @@ export interface JobApplication {
   jobUrl?: string | null;
   description?: string | null;
   status: ApplicationStatus;
+  statusUpdatedAt?: string | null;
   appliedAt?: string | null;
   resumeId?: string | null;
   resume?: Pick<Resume, 'id' | 'title' | 'templateId' | 'tailoredFor'> | null;

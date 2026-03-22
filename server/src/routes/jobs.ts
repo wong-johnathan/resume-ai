@@ -67,7 +67,11 @@ router.put('/:id', validateBody(updateJobSchema), async (req, res, next) => {
   try {
     const job = await prisma.jobApplication.updateMany({
       where: { id: req.params.id as string, userId: getUser(req).id },
-      data: { ...req.body, appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : undefined },
+      data: {
+        ...req.body,
+        appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : undefined,
+        ...(req.body.status !== undefined ? { statusUpdatedAt: new Date() } : {}),
+      },
     });
     if (job.count === 0) return res.status(404).json({ error: 'Job not found' });
     const updated = await prisma.jobApplication.findUnique({

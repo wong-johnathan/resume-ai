@@ -145,8 +145,9 @@ model JobApplication {
   jobTitle    String
   jobUrl      String?
   description String?   @db.Text
-  status      String    @default("SAVED")
-  appliedAt   DateTime?
+  status            String    @default("SAVED")
+  statusUpdatedAt   DateTime?
+  appliedAt         DateTime?
   resumeId    String?
   resume      Resume?   @relation(fields: [resumeId], references: [id])
   notes       String?   @db.Text
