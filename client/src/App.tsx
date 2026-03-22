@@ -14,6 +14,7 @@ import { ResumeDetailPage } from './pages/ResumeDetailPage';
 import { ResumeEditPage } from './pages/ResumeEditPage';
 import { JobTrackerPage } from './pages/JobTrackerPage';
 import { JobDetailPage } from './pages/JobDetailPage';
+import { JobPrepPage } from './pages/JobPrepPage';
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ export default function App() {
                 <Route path="/resumes/:id" element={<ResumeDetailPage />} />
                 <Route path="/jobs" element={<JobTrackerPage />} />
                 <Route path="/jobs/:id" element={<JobDetailPage />} />
+                <Route path="/jobs/:id/prep" element={<JobPrepPage />} />
               </Route>
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />

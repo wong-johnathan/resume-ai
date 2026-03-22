@@ -126,3 +126,31 @@ export interface JobApplication {
   updatedAt: string;
   aiAmendments?: AiAmendment[];
 }
+
+export interface InterviewFeedback {
+  strengths: string[];
+  improvements: string[];
+  sampleResponse: string;
+}
+
+export interface InterviewQuestion {
+  question: string;
+  userAnswer?: string;
+  feedback?: InterviewFeedback;
+  sampleResponse?: string;
+}
+
+export interface InterviewCategory {
+  name: string;
+  questionCount: number;
+  questions: InterviewQuestion[];
+}
+
+export interface InterviewPrep {
+  id: string;
+  jobId: string;
+  userId: string;
+  categories: InterviewCategory[];
+  createdAt: string;
+  updatedAt: string;
+}

@@ -24,6 +24,7 @@ model User {
   resumes         Resume[]
   jobApplications JobApplication[]
   jobStatuses     UserJobStatus[]
+  interviewPreps  InterviewPrep[]
 
   @@unique([provider, providerId])
 }
@@ -153,7 +154,8 @@ model JobApplication {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  aiAmendments AiAmendment[]
+  aiAmendments  AiAmendment[]
+  interviewPrep InterviewPrep?
 }
 
 model AiAmendment {
@@ -169,6 +171,19 @@ model AiAmendment {
 enum AiAmendmentType {
   RESUME_TAILOR
   COVER_LETTER
+}
+
+// ─── INTERVIEW PREP ──────────────────────────────────────────────────────────
+
+model InterviewPrep {
+  id         String         @id @default(cuid())
+  jobId      String         @unique
+  job        JobApplication @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories Json
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 }
 
 model UserJobStatus {

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Briefcase, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
 import { getJob, updateJob } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
@@ -226,6 +226,17 @@ export function JobDetailPage() {
               </div>
             );
           })()}
+
+          <Link
+            to={`/jobs/${job.id}/prep`}
+            className="flex items-center justify-between bg-white rounded-xl border shadow-sm p-5 hover:border-blue-300 transition-colors group"
+          >
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-blue-600" />
+              <span className="text-base font-semibold text-gray-900">Interview Prep</span>
+            </div>
+            <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+          </Link>
 
           <div className="bg-white rounded-xl border shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
