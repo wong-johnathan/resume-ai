@@ -414,7 +414,7 @@ router.post(
       category.questions[questionIndex].feedback = feedback;
 
       const updated = await prisma.interviewPrep.update({
-        where: { jobId },
+        where: { id: prep.id },
         data: { categories: categories as any },
       });
 
