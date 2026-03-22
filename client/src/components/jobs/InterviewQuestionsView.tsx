@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { InterviewCategory, InterviewFeedback, InterviewQuestion } from '../../types';
 import { InterviewAnswerPanel } from './InterviewAnswerPanel';
@@ -17,6 +17,12 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, o
     () => new Set(initialCategories.map((c) => c.name))
   );
   const [openQuestions, setOpenQuestions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setCategories(initialCategories);
+    setOpenCategories(new Set(initialCategories.map((c) => c.name)));
+    setOpenQuestions(new Set());
+  }, [initialCategories]);
 
   const toggleCategory = (name: string) => {
     setOpenCategories((prev) => {
@@ -102,7 +108,7 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, o
                   const qKey = `${cat.name}-${qIndex}`;
                   const isQOpen = openQuestions.has(qKey);
                   return (
-                    <div key={qIndex} className="px-4 py-3">
+                    <div key={q.question} className="px-4 py-3">
                       {/* Question row */}
                       <button
                         onClick={() => toggleQuestion(qKey)}
