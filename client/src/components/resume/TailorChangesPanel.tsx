@@ -59,30 +59,27 @@ export function TailorChangesPanel({ changes, source, current }: Props) {
       {changes.experiences.map((exp) => {
         const sourceExp = source.experiences[exp.index];
         const currentExp = current.experiences[exp.index];
+        const changedBullets = exp.bulletChanges.filter((b) => b.type !== 'unchanged');
         return (
           <div key={exp.index} className="bg-white border rounded-xl p-4 shadow-sm">
             <h3 className="font-semibold text-sm text-gray-900">{exp.title}</h3>
             <p className="text-xs text-gray-400 mb-1">{exp.company}</p>
             <p className="text-xs text-gray-500 mb-3">{exp.sectionSummary}</p>
 
-            {/* Side-by-side full description */}
             <SideBySide
               left={sourceExp?.description ?? ''}
               right={currentExp?.description ?? ''}
             />
 
-            {/* Per-bullet change rows (skip unchanged) */}
-            {exp.bulletChanges.filter((b) => b.type !== 'unchanged').length > 0 && (
+            {changedBullets.length > 0 && (
               <div className="mt-3 space-y-2">
                 <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Change Details</p>
-                {exp.bulletChanges
-                  .filter((b) => b.type !== 'unchanged')
-                  .map((bullet, bi) => (
-                    <div key={bi} className="flex gap-2 items-start text-xs">
-                      <Badge type={bullet.type} />
-                      <p className="text-gray-600 flex-1">{bullet.reason}</p>
-                    </div>
-                  ))}
+                {changedBullets.map((bullet, bi) => (
+                  <div key={`${bullet.type}-${bi}`} className="flex gap-2 items-start text-xs">
+                    <Badge type={bullet.type} />
+                    <p className="text-gray-600 flex-1">{bullet.reason}</p>
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -101,20 +98,21 @@ export function TailorChangesPanel({ changes, source, current }: Props) {
         />
 
         {/* Per-skill change rows (skip unchanged) */}
-        {changes.skills.skillChanges.filter((s) => s.type !== 'unchanged').length > 0 && (
-          <div className="mt-3 space-y-2">
-            <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Change Details</p>
-            {changes.skills.skillChanges
-              .filter((s) => s.type !== 'unchanged')
-              .map((skill, si) => (
-                <div key={si} className="flex gap-2 items-start text-xs">
+        {(() => {
+          const changedSkills = changes.skills.skillChanges.filter((s) => s.type !== 'unchanged');
+          return changedSkills.length > 0 ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Change Details</p>
+              {changedSkills.map((skill) => (
+                <div key={skill.name} className="flex gap-2 items-start text-xs">
                   <Badge type={skill.type} />
                   <span className="font-medium text-gray-700 flex-shrink-0">{skill.name}:</span>
                   <p className="text-gray-600 flex-1">{skill.reason}</p>
                 </div>
               ))}
-          </div>
-        )}
+            </div>
+          ) : null;
+        })()}
       </div>
     </div>
   );
