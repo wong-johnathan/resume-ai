@@ -67,6 +67,39 @@ export interface Profile {
 import type { ResumeContent } from './resumeContent';
 export type { ResumeContent };
 
+export interface BulletChange {
+  type: 'reworded' | 'added' | 'removed' | 'unchanged';
+  original: string | null;
+  rewritten: string | null;
+  reason: string;
+}
+
+export interface ExperienceChange {
+  index: number;
+  company: string;
+  title: string;
+  sectionSummary: string;
+  bulletChanges: BulletChange[];
+}
+
+export interface TailorChanges {
+  overallSummary: string;
+  summary: {
+    sectionSummary: string;
+    original: string;
+    rewritten: string;
+  };
+  experiences: ExperienceChange[];
+  skills: {
+    sectionSummary: string;
+    skillChanges: Array<{
+      type: 'added' | 'removed' | 'reordered' | 'unchanged';
+      name: string;
+      reason: string;
+    }>;
+  };
+}
+
 export interface Resume {
   id: string;
   userId: string;
@@ -76,6 +109,8 @@ export interface Resume {
   contentJson: ResumeContent;
   tailoredFor?: string | null;
   coverLetter?: string | null;
+  tailorChanges?: TailorChanges | null;
+  tailorSourceSnapshot?: ResumeContent | null;
   createdAt: string;
   updatedAt: string;
 }

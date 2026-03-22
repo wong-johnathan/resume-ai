@@ -6,6 +6,7 @@ import { Resume } from '../types';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { useAppStore } from '../store/useAppStore';
+import { TailorChangesPanel } from '../components/resume/TailorChangesPanel';
 
 export function ResumeDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,7 @@ export function ResumeDetailPage() {
   const [resume, setResume] = useState<Resume | null>(null);
   const [status, setStatus] = useState<Resume['status']>('DRAFT');
   const [previewKey, setPreviewKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<'preview' | 'changes'>('preview');
 
   const [previewScale, setPreviewScale] = useState(() =>
     window.innerWidth < 768 ? Math.min(1, (window.innerWidth - 16) / 794) : 1
@@ -26,7 +28,10 @@ export function ResumeDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (id) getResume(id).then((r) => { setResume(r); setStatus(r.status); }).catch(() => {});
+    if (id) {
+      setActiveTab('preview');
+      getResume(id).then((r) => { setResume(r); setStatus(r.status); }).catch(() => {});
+    }
   }, [id]);
 
   const handleStatusChange = async (newStatus: Resume['status']) => {
@@ -80,49 +85,85 @@ export function ResumeDetailPage() {
         </div>
       </div>
 
-      {/* Preview area */}
-      <div className="bg-gray-100 overflow-auto relative" style={{ minHeight: previewScale < 1 ? `${1122 * previewScale + 32}px` : 'calc(100vh - 65px)' }}>
-        <button
-          onClick={() => setPreviewKey((k) => k + 1)}
-          className="sticky top-3 float-right mr-3 z-10 bg-white border rounded-lg px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 shadow-sm flex items-center gap-1.5"
-          title="Reload preview"
-        >
-          <RefreshCw size={12} /> Refresh
-        </button>
+      {/* Tab navigation — only shown for tailored resumes with change data and snapshot */}
+      {resume.tailoredFor && resume.tailorChanges && resume.tailorSourceSnapshot && (
+        <div className="flex border-b bg-white px-4 sm:px-6 flex-shrink-0">
+          <button
+            onClick={() => setActiveTab('preview')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'preview'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => setActiveTab('changes')}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'changes'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Changes
+          </button>
+        </div>
+      )}
 
-        {previewScale < 1 ? (
-          <div style={{ width: `${794 * previewScale}px`, height: `${1122 * previewScale}px`, overflow: 'hidden' }}>
+      {/* Preview area or Changes tab */}
+      {activeTab === 'preview' || !resume.tailoredFor || !resume.tailorChanges || !resume.tailorSourceSnapshot ? (
+        <div className="bg-gray-100 overflow-auto relative" style={{ minHeight: previewScale < 1 ? `${1122 * previewScale + 32}px` : 'calc(100vh - 65px)' }}>
+          <button
+            onClick={() => setPreviewKey((k) => k + 1)}
+            className="sticky top-3 float-right mr-3 z-10 bg-white border rounded-lg px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 shadow-sm flex items-center gap-1.5"
+            title="Reload preview"
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+
+          {previewScale < 1 ? (
+            <div style={{ width: `${794 * previewScale}px`, height: `${1122 * previewScale}px`, overflow: 'hidden' }}>
+              <iframe
+                key={previewKey}
+                src={getPreviewUrl(resume.id)}
+                title="Resume Preview"
+                style={{
+                  width: '794px',
+                  height: '1122px',
+                  border: 'none',
+                  display: 'block',
+                  background: '#fff',
+                  transform: `scale(${previewScale})`,
+                  transformOrigin: 'top left',
+                }}
+              />
+            </div>
+          ) : (
             <iframe
               key={previewKey}
               src={getPreviewUrl(resume.id)}
               title="Resume Preview"
-              style={{
-                width: '794px',
-                height: '1122px',
-                border: 'none',
-                display: 'block',
-                background: '#fff',
-                transform: `scale(${previewScale})`,
-                transformOrigin: 'top left',
+              className="w-full border-none block"
+              style={{ minHeight: '1122px', background: '#fff' }}
+              onLoad={(e) => {
+                try {
+                  const doc = e.currentTarget.contentDocument;
+                  if (doc) e.currentTarget.style.height = doc.documentElement.scrollHeight + 'px';
+                } catch {}
               }}
             />
-          </div>
-        ) : (
-          <iframe
-            key={previewKey}
-            src={getPreviewUrl(resume.id)}
-            title="Resume Preview"
-            className="w-full border-none block"
-            style={{ minHeight: '1122px', background: '#fff' }}
-            onLoad={(e) => {
-              try {
-                const doc = e.currentTarget.contentDocument;
-                if (doc) e.currentTarget.style.height = doc.documentElement.scrollHeight + 'px';
-              } catch {}
-            }}
+          )}
+        </div>
+      ) : (
+        <div className="bg-gray-50 overflow-auto flex-1">
+          <TailorChangesPanel
+            changes={resume.tailorChanges}
+            source={resume.tailorSourceSnapshot ?? resume.contentJson}
+            current={resume.contentJson}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
