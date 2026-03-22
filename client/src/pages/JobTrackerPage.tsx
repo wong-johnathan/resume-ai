@@ -446,7 +446,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                           </span>
                         )}
                         {job.coverLetter && (
-                          <span className="text-xs text-purple-500 flex items-center gap-0.5">
+                          <span className="text-xs text-purple-500 flex items-center gap-0.5 whitespace-nowrap">
                             <Sparkles size={11} /> Cover letter
                           </span>
                         )}
