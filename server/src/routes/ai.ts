@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
-import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit } from '../services/claude';
+import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
 
 const router = Router();
@@ -266,4 +266,164 @@ router.post('/improve-summary', validateBody(summarySchema), async (req, res, ne
   } catch (err) { next(err); }
 });
 
+// ─── Generate interview categories ───────────────────────────────────────────
+
+router.post(
+  '/interview-categories',
+  validateBody(z.object({ jobId: z.string() })),
+  async (req, res, next) => {
+    try {
+      const user = getUser(req);
+      const { jobId } = req.body;
+
+      const job = await prisma.jobApplication.findFirst({
+        where: { id: jobId, userId: user.id },
+      });
+      if (!job || !job.description) {
+        return res.status(404).json({ error: 'Job not found or has no description' });
+      }
+
+      const profile = await prisma.profile.findFirst({
+        where: { userId: user.id },
+        include: {
+          experiences: { orderBy: { order: 'asc' }, take: 3 },
+          skills: { take: 10 },
+        },
+      });
+
+      const categories = await generateInterviewCategories(job.description, {
+        summary: profile?.summary,
+        experiences: profile?.experiences ?? [],
+        skills: profile?.skills ?? [],
+      });
+
+      res.json({ categories });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── Generate interview questions ─────────────────────────────────────────────
+
+router.post(
+  '/interview-questions',
+  validateBody(
+    z.object({
+      jobId: z.string(),
+      selections: z
+        .array(z.object({ name: z.string(), questionCount: z.number().min(3).max(10) }))
+        .min(1),
+    })
+  ),
+  async (req, res, next) => {
+    try {
+      const user = getUser(req);
+      const { jobId, selections } = req.body;
+
+      const job = await prisma.jobApplication.findFirst({
+        where: { id: jobId, userId: user.id },
+      });
+      if (!job || !job.description) {
+        return res.status(404).json({ error: 'Job not found or has no description' });
+      }
+
+      const profile = await prisma.profile.findFirst({
+        where: { userId: user.id },
+        include: {
+          experiences: { orderBy: { order: 'asc' }, take: 3 },
+          skills: { take: 10 },
+        },
+      });
+
+      const generatedCategories = await generateInterviewQuestions(
+        job.description,
+        {
+          summary: profile?.summary,
+          experiences: profile?.experiences ?? [],
+          skills: profile?.skills ?? [],
+        },
+        selections
+      );
+
+      // Merge questionCount from selections into the returned categories
+      const categories: InterviewCategory[] = generatedCategories.map((cat) => {
+        const sel = selections.find((s: { name: string; questionCount: number }) => s.name === cat.name);
+        return { name: cat.name, questionCount: sel?.questionCount ?? cat.questions.length, questions: cat.questions };
+      });
+
+      const prep = await prisma.interviewPrep.upsert({
+        where: { jobId },
+        create: { jobId, userId: user.id, categories: categories as any },
+        update: { categories: categories as any },
+      });
+
+      res.json(prep);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// ─── Evaluate interview answer ─────────────────────────────────────────────────
+
+router.post(
+  '/interview-feedback',
+  validateBody(
+    z.object({
+      jobId: z.string(),
+      categoryName: z.string(),
+      questionIndex: z.number().int().min(0),
+      question: z.string(),
+      answer: z.string().min(1),
+    })
+  ),
+  async (req, res, next) => {
+    try {
+      const user = getUser(req);
+      const { jobId, categoryName, questionIndex, question, answer } = req.body;
+
+      const job = await prisma.jobApplication.findFirst({
+        where: { id: jobId, userId: user.id },
+      });
+      if (!job || !job.description) {
+        return res.status(404).json({ error: 'Job not found or has no description' });
+      }
+
+      const feedback: InterviewFeedback = await evaluateInterviewAnswer(
+        question,
+        answer,
+        job.description,
+        categoryName
+      );
+
+      const prep = await prisma.interviewPrep.findFirst({
+        where: { jobId, userId: user.id },
+      });
+      if (!prep) {
+        return res.status(404).json({ error: 'Interview prep not found' });
+      }
+
+      const categories = prep.categories as unknown as InterviewCategory[];
+      const category = categories.find((c) => c.name === categoryName);
+      if (!category || !category.questions[questionIndex]) {
+        return res.status(404).json({ error: 'Question not found' });
+      }
+
+      category.questions[questionIndex].userAnswer = answer;
+      category.questions[questionIndex].feedback = feedback;
+
+      const updated = await prisma.interviewPrep.update({
+        where: { jobId },
+        data: { categories: categories as any },
+      });
+
+      res.json({ feedback, prep: updated });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
 export default router;
+
