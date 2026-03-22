@@ -315,7 +315,7 @@ export function JobDetailPage() {
                       disabled={!tailorSourceId}
                     >
                       <Sparkles size={13} />
-                      {job.resume?.tailoredFor ? 'Re-tailor with Claude' : 'Tailor with Claude'}
+                      {job.resume?.tailoredFor ? 'Re-tailor with AI' : 'Tailor with AI'}
                     </Button>
                     <p className="text-[10px] text-gray-400 mt-1">Creates a tailored copy from your profile data.</p>
                   </>
@@ -397,7 +397,7 @@ export function JobDetailPage() {
             {displayCoverLetter ? (
               <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">{displayCoverLetter}</pre>
             ) : (
-              <p className="text-xs text-gray-400">No cover letter yet. Generate one with Claude or write your own.</p>
+              <p className="text-xs text-gray-400">No cover letter yet. Generate one with AI or write your own.</p>
             )}
           </div>
         </div>
@@ -477,7 +477,7 @@ export function JobDetailPage() {
             onChange={(e) => setTone(e.target.value)}
           />
           <Button onClick={handleGenerateCoverLetter} loading={streaming} disabled={!job.description || amendmentLimitReached}>
-            <Sparkles size={16} /> {coverLetter ? 'Regenerate' : 'Generate'} with Claude
+            <Sparkles size={16} /> {coverLetter ? 'Regenerate' : 'Generate'} with AI
           </Button>
           {amendmentLimitReached && (
             <p className="text-xs text-red-500">AI amendment limit reached for this job.</p>

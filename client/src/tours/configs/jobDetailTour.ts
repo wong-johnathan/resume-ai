@@ -12,7 +12,7 @@ export const jobDetailTour: TourConfig = {
     {
       selector: '[data-tour="fit-analysis"]',
       title: 'Fit Analysis',
-      body: 'After adding a job description, Claude scores how well your profile matches the role and highlights strengths and gaps.',
+      body: 'After adding a job description, AI scores how well your profile matches the role and highlights strengths and gaps.',
       placement: 'top',
     },
     {
@@ -36,13 +36,13 @@ export const jobDetailTour: TourConfig = {
     {
       selector: '[data-tour="job-resume"]',
       title: 'Resume & AI Tailoring',
-      body: 'Select a template and let Claude tailor your resume specifically for this job. You get 3 AI amendments per job.',
+      body: 'Select a template and let AI tailor your resume specifically for this job. You get 3 AI amendments per job.',
       placement: 'left',
     },
     {
       selector: '[data-tour="job-cover-letter"]',
       title: 'Cover Letter',
-      body: 'Generate a personalised cover letter with Claude. Choose your tone — Professional, Conversational, or Enthusiastic.',
+      body: 'Generate a personalised cover letter with AI. Choose your tone — Professional, Conversational, or Enthusiastic.',
       placement: 'left',
     },
   ],
