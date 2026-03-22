@@ -5,7 +5,6 @@ import { InterviewCategorySelector } from './InterviewCategorySelector';
 import { InterviewQuestionsView } from './InterviewQuestionsView';
 import {
   getInterviewPrep,
-  deleteInterviewPrep,
   generateCategories,
   generateQuestions,
 } from '../../api/interviewPrep';
@@ -31,7 +30,6 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
 
   // Sync step with loaded data
   useEffect(() => {
@@ -66,19 +64,6 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
     }
   };
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      await deleteInterviewPrep(jobId);
-      queryClient.removeQueries({ queryKey: ['interviewPrep', jobId] });
-      setSuggestedCategories([]);
-      setStep('idle');
-    } catch {
-      addToast('Failed to reset interview prep.', 'error');
-    } finally {
-      setRegenerating(false);
-    }
-  };
 
   return (
     <div className="bg-white rounded-xl border shadow-sm p-5">
@@ -123,8 +108,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
         <InterviewQuestionsView
           jobId={jobId}
           categories={existingPrep.categories}
-          onRegenerate={handleRegenerate}
-          regenerating={regenerating}
+          hasDescription={hasDescription}
         />
       ) : null}
     </div>
