@@ -66,6 +66,19 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, h
     });
   };
 
+  const allQuestionKeys = categories.flatMap((cat) =>
+    cat.questions.map((_, i) => `${cat.name}-${i}`)
+  );
+  const allExpanded = allQuestionKeys.length > 0 && allQuestionKeys.every((k) => openQuestions.has(k));
+
+  const toggleExpandAll = () => {
+    if (allExpanded) {
+      setOpenQuestions(new Set());
+    } else {
+      setOpenQuestions(new Set(allQuestionKeys));
+    }
+  };
+
   const patchQuestion = (catName: string, qIndex: number, patch: Partial<InterviewQuestion>) => {
     setCategories((prev) =>
       prev.map((cat) =>
@@ -135,9 +148,19 @@ export function InterviewQuestionsView({ jobId, categories: initialCategories, h
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">
-        {answeredCount}/{totalCount} answered
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          {answeredCount}/{totalCount} answered
+        </p>
+        {allQuestionKeys.length > 0 && (
+          <button
+            onClick={toggleExpandAll}
+            className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            {allExpanded ? 'Collapse all' : 'Expand all'}
+          </button>
+        )}
+      </div>
 
       {categories.map((cat) => {
         const isCatOpen = openCategories.has(cat.name);

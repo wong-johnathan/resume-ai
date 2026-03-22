@@ -178,7 +178,7 @@ export function InterviewAnswerPanel({
 
   // Input state (no feedback yet)
   return (
-    <div className="mt-3 space-y-2">
+    <div className="mt-3 space-y-3">
       <textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -186,15 +186,17 @@ export function InterviewAnswerPanel({
         rows={4}
         className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
       />
-      <button
-        onClick={handleSubmit}
-        disabled={!draft.trim() || submitting}
-        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {submitting ? 'Getting feedback…' : 'Submit for Feedback'}
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSubmit}
+          disabled={!draft.trim() || submitting}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {submitting ? 'Getting feedback…' : 'Submit for Feedback'}
+        </button>
+        {generateSampleButton}
+      </div>
       {sampleResponseCard}
-      {generateSampleButton}
     </div>
   );
 }
