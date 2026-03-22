@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { InterviewPrepPanel } from '../components/jobs/InterviewPrepPanel';
 import { ArrowLeft, Sparkles, FileText, ExternalLink, Pencil, MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
 import { getJob, updateJob } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
@@ -226,6 +227,11 @@ export function JobDetailPage() {
               </div>
             );
           })()}
+
+          <InterviewPrepPanel
+            jobId={job.id}
+            hasDescription={!!job.description}
+          />
 
           <div className="bg-white rounded-xl border shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
