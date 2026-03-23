@@ -51,10 +51,11 @@ npx create-next-app@latest landing \
   --app \
   --no-src-dir \
   --import-alias "@/*" \
-  --no-tailwind
+  --no-tailwind \
+  --yes
 ```
 
-When prompted, accept all defaults. This creates `landing/` with Next.js 15, TypeScript, ESLint, App Router.
+This creates `landing/` with Next.js 15, TypeScript, ESLint, App Router. The `--yes` flag suppresses all interactive prompts.
 
 - [ ] **Step 2: Install dependencies**
 
@@ -70,6 +71,7 @@ This creates `tailwind.config.ts` and `postcss.config.js`.
 
 ```ts
 import type { Config } from 'tailwindcss'
+import { fontFamily } from 'tailwindcss/defaultTheme'
 
 const config: Config = {
   content: [
@@ -77,7 +79,14 @@ const config: Config = {
     './components/**/*.{ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        sans: ['var(--font-inter)', ...fontFamily.sans],
+      },
+      opacity: {
+        15: '0.15',
+      },
+    },
   },
   plugins: [],
 }
@@ -154,7 +163,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
   title: 'ResumeAI — Build Resumes That Actually Get Interviews',
@@ -196,7 +205,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.variable} font-sans`}>{children}</body>
     </html>
   )
 }
@@ -1075,7 +1084,7 @@ Confirm `sitemap.xml` and `robots.txt` are present.
 npx serve landing/out
 ```
 
-Open `http://localhost:3000` (or whichever port `serve` picks). Verify the page looks identical to dev mode and all links/animations work.
+Open the URL printed in the terminal by `serve` (typically `http://localhost:3000` but may differ if the port is in use). Verify the page looks identical to dev mode and all links/animations work.
 
 - [ ] **Step 4: Commit the final state**
 
