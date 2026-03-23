@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion'
 
-const APP_URL = 'https://resume-ai.johnathanwwh.com'
+const APP_URL = 'https://app.resume.johnathanwwh.com'
 
 export default function Hero() {
   const prefersReducedMotion = useReducedMotion()

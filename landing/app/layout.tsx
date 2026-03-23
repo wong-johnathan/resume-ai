@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'ResumeAI — Build Resumes That Actually Get Interviews',
   description:
     'AI-powered resume builder that tailors your resume to every job description, tracks your applications, and preps you for interviews — all in one place.',
-  metadataBase: new URL('https://landing-resume-ai.johnathanwwh.com'),
+  metadataBase: new URL('https://resume.johnathanwwh.com'),
   alternates: {
     canonical: '/',
   },
@@ -16,7 +16,7 @@ export const metadata: Metadata = {
     title: 'ResumeAI — Build Resumes That Actually Get Interviews',
     description:
       'AI-powered resume builder that tailors your resume to every job description, tracks your applications, and preps you for interviews — all in one place.',
-    url: 'https://landing-resume-ai.johnathanwwh.com',
+    url: 'https://resume.johnathanwwh.com',
     siteName: 'ResumeAI',
     images: [
       {

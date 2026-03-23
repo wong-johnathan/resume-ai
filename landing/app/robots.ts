@@ -5,6 +5,6 @@ export const dynamic = 'force-static'
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: '*', allow: '/' },
-    sitemap: 'https://landing-resume-ai.johnathanwwh.com/sitemap.xml',
+    sitemap: 'https://resume.johnathanwwh.com/sitemap.xml',
   }
 }

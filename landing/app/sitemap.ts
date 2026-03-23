@@ -5,7 +5,7 @@ export const dynamic = 'force-static'
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: 'https://landing-resume-ai.johnathanwwh.com',
+      url: 'https://resume.johnathanwwh.com',
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 1,
