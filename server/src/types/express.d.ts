@@ -1,14 +1,17 @@
-import { User as PrismaUser } from '@prisma/client';
+import { User as PrismaUser, AdminUser as PrismaAdminUser } from '@prisma/client';
+
+type AuthenticatedUser = (PrismaUser & { _type: 'user' }) | (PrismaAdminUser & { _type: 'admin' });
 
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: PrismaUser;
+    user?: AuthenticatedUser;
   }
 }
 
 declare global {
   namespace Express {
-    interface User extends PrismaUser {}
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface User extends AuthenticatedUser {}
   }
 }
 
