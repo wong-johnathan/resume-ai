@@ -17,8 +17,9 @@ model User {
   avatarUrl   String?
   provider    String
   providerId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastActiveAt DateTime?
 
   profile         Profile?
   resumes         Resume[]
@@ -199,4 +200,43 @@ model UserJobStatus {
   order  Int    @default(0)
 
   @@unique([userId, label])
+}
+
+// ─── ADMIN ───────────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?
+  avatarUrl   String?
+  provider    String
+  providerId  String
+  createdAt   DateTime @default(now())
+
+  @@unique([provider, providerId])
+}
+
+model ActivityLog {
+  id        String         @id @default(cuid())
+  userId    String
+  action    ActivityAction
+  metadata  Json?
+  createdAt DateTime       @default(now())
+}
+
+enum ActivityAction {
+  LOGIN
+  LOGOUT
+  RESUME_CREATED
+  RESUME_DELETED
+  RESUME_ARCHIVED
+  JOB_CREATED
+  JOB_DELETED
+  AI_TAILOR
+  AI_COVER_LETTER
+  AI_INTERVIEW_PREP
+  AI_SUMMARY
+  INTERVIEW_PREP_GENERATED
+  PROFILE_UPDATED
+  ACCOUNT_DELETED
 }
