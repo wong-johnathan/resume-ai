@@ -14,6 +14,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
   CLIENT_URL: z.string().default('http://localhost:5173'),
+  ADMIN_EMAILS: z.string().optional(),
+  ADMIN_SESSION_SECRET: z.string().min(32).optional(),
+  ADMIN_GOOGLE_CLIENT_ID: z.string().optional(),
+  ADMIN_GOOGLE_CLIENT_SECRET: z.string().optional(),
+  ADMIN_GOOGLE_CALLBACK_URL: z.string().optional(),
+  ADMIN_URL: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);
