@@ -47,10 +47,10 @@ This is an NPM workspaces monorepo with two packages: `client/` (React) and `ser
 - **Routing:** React Router v7. Routes split into public (`/`, `/login`) and protected (everything else under `<ProtectedRoute>` + `<ProfileGate>`). `ProfileGate` redirects to `/setup` if user has no profile.
 - **Auth state:** `AuthContext` fetches `/api/auth/me` on mount; provides `user` and `loading` via `useAuth()`.
 - **UI state:** Zustand store (`src/store/useAppStore.ts`) handles sidebar open/close and toast notifications.
-- **API calls:** Axios instance in `src/api/api.ts` with `baseURL=/api` and `withCredentials: true`. Wrapper functions per domain in `src/api/` (jobs, resumes, profile, ai, jobStatuses). React Query is used for server state.
+- **API calls:** Axios instance in `src/api/api.ts` with `baseURL=/api` and `withCredentials: true`. Wrapper functions per domain in `src/api/` (jobs, resumes, profile, ai, jobStatuses, interviewPrep, tours). React Query is used for server state.
 - **Forms:** React Hook Form + Zod for validation.
 - **Rich text:** TipTap editor used in resume editing.
-- **Drag-and-drop:** dnd-kit powers the Kanban job tracker board.
+- **Drag-and-drop:** dnd-kit is a dependency but the job tracker is a table list — status is updated via a dropdown per row.
 
 ### Key Data Flows
 
@@ -60,9 +60,13 @@ This is an NPM workspaces monorepo with two packages: `client/` (React) and `ser
 
 **Cover letter generation:** SSE stream from `POST /api/ai/cover-letter` — client reads the stream and updates state incrementally, saving the final text to the job record.
 
-**Job statuses:** Fully user-defined via `UserJobStatus` table. The Kanban board columns are driven by these custom labels.
+**Job statuses:** Fully user-defined via `UserJobStatus` table. Status labels appear as dropdown options on each row of the job tracker table.
 
 **AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `AiAmendment`. Max 3 tailoring amendments per job — enforced on server (HTTP 403) and client (buttons disabled).
+
+**Interview prep:** `POST /api/interview-prep/:jobId/generate` generates AI interview categories and questions tailored to the job. Each question can have one AI-generated sample response (enforced server-side). Users can also submit their own answers for AI feedback (strengths, improvements, revised sample). All stored in the `InterviewPrep` table per job.
+
+**Tours:** Onboarding tours are tracked per-user in `Profile.toursCompleted` (a JSON map of tour ID → completion timestamp). Tour IDs: `jobs-list`, `job-detail`, `job-prep`. `PATCH /api/tours/:tourId` marks a tour complete.
 
 ## Environment Setup
 

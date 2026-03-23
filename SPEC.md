@@ -38,7 +38,7 @@ resume-app/
 │           ├── TemplatesPage.tsx
 │           ├── ResumesPage.tsx
 │           ├── ResumeDetailPage.tsx
-│           ├── JobTrackerPage.tsx  # Kanban board
+│           ├── JobTrackerPage.tsx  # Job tracker table
 │           └── JobDetailPage.tsx
 └── server/
     ├── package.json
@@ -173,7 +173,7 @@ PDF route: fetch Resume → `templates[templateId](contentJson)` → Puppeteer `
 
 **Server:** `express`, `prisma`, `@prisma/client`, `passport`, `passport-google-oauth20`, `passport-github2`, `passport-linkedin-oauth2`, `express-session`, `connect-pg-simple`, `@anthropic-ai/sdk`, `puppeteer`, `zod`, `cors`, `helmet`, `express-rate-limit`
 
-**Client:** `react-router-dom`, `@tanstack/react-query`, `axios`, `zustand`, `react-hook-form`, `zod`, `@hookform/resolvers`, `tailwindcss`, `lucide-react`, `@dnd-kit/core` (Kanban drag-and-drop)
+**Client:** `react-router-dom`, `@tanstack/react-query`, `axios`, `zustand`, `react-hook-form`, `zod`, `@hookform/resolvers`, `tailwindcss`, `lucide-react`, `@dnd-kit/core`
 
 ---
 
@@ -207,7 +207,7 @@ VITE_API_BASE_URL=http://localhost:3000
 | 4 | Profile | Full CRUD for all profile sections |
 | 5 | Templates + Resume | PDF export end-to-end |
 | 6 | AI Features | Tailor + cover letter + improve summary |
-| 7 | Job Tracker | Kanban board, drag-and-drop |
+| 7 | Job Tracker | Table list with status dropdown |
 | 8 | Polish | Error handling, toasts, mobile layout, dashboard stats |
 
 ---
