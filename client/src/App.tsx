@@ -5,7 +5,6 @@ import { TourProvider } from './context/TourContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import { ProfileGate } from './components/layout/ProfileGate';
 import { AppLayout } from './components/layout/AppLayout';
-import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -26,8 +25,8 @@ export default function App() {
         <BrowserRouter>
           <TourProvider>
             <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<LoginPage />} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 {/* Accessible without a profile */}
                 <Route path="/setup" element={<SetupPage />} />
