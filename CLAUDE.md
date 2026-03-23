@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ```bash
-# Start both client and server in dev mode
+# Start server, client, and landing page in dev mode
 npm run dev
 
 # Run only server (port 3000)
@@ -14,7 +14,10 @@ npm run dev:server
 # Run only client (port 5173)
 npm run dev:client
 
-# Build both
+# Run only landing page (port 3001)
+npm run dev:landing
+
+# Build both client and server
 npm run build
 
 # Database migrations

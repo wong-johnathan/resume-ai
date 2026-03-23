@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a standalone Next.js 15 marketing landing page at `landing/` that entices job seekers to sign up for ResumeAI.
+**Goal:** Build a standalone Next.js 15+ marketing landing page at `landing/` that entices job seekers to sign up for ResumeAI.
 
-**Architecture:** Static Next.js 15 App Router site (`output: 'export'`) deployed independently at `landing-resume-ai.johnathanwwh.com`. All CTAs link to the app at `https://resume-ai.johnathanwwh.com`. Seven section components (Navbar, Hero, WhySection, FeaturesSection, HowItWorks, TemplatesSection, Footer) composed in `page.tsx`. Animated with Framer Motion, styled with Tailwind CSS v3.
+**Architecture:** Static Next.js 15+ App Router site (`output: 'export'`) deployed independently at `landing-resume-ai.johnathanwwh.com`. All CTAs link to the app at `https://resume-ai.johnathanwwh.com`. Seven section components (Navbar, Hero, WhySection, FeaturesSection, HowItWorks, TemplatesSection, Footer) composed in `page.tsx`. Animated with Framer Motion, styled with Tailwind CSS v3.
 
-**Tech Stack:** Next.js 15, Tailwind CSS v3, Framer Motion, `next/font` (Inter)
+**Tech Stack:** Next.js 15+, Tailwind CSS v3, Framer Motion, `next/font` (Inter)
 
 ---
 
@@ -40,7 +40,7 @@
 - Modify: `landing/tailwind.config.ts`
 - Modify: `landing/app/globals.css`
 
-- [ ] **Step 1: Scaffold a bare Next.js 15 app (no Tailwind — we install v3 manually)**
+- [ ] **Step 1: Scaffold a bare Next.js 15+ app (no Tailwind — we install v3 manually)**
 
 Run from the monorepo root (`/Users/johnathanwong/Desktop/resume-app`):
 
@@ -55,7 +55,7 @@ npx create-next-app@latest landing \
   --yes
 ```
 
-This creates `landing/` with Next.js 15, TypeScript, ESLint, App Router. The `--yes` flag suppresses all interactive prompts.
+This creates `landing/` with Next.js 15+, TypeScript, ESLint, App Router. The `--yes` flag suppresses all interactive prompts.
 
 - [ ] **Step 2: Install dependencies**
 
@@ -130,7 +130,7 @@ Expected: server starts at `http://localhost:3000` with the default Next.js home
 - [ ] **Step 7: Commit**
 
 ```bash
-cd .. && git add landing/ && git commit -m "feat: scaffold landing page — Next.js 15, Tailwind v3, Framer Motion"
+cd .. && git add landing/ && git commit -m "feat: scaffold landing page — Next.js 15+, Tailwind v3, Framer Motion"
 ```
 
 ---
