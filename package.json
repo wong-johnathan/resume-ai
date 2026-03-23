@@ -4,12 +4,14 @@
   "private": true,
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "admin"
   ],
   "scripts": {
-    "dev": "docker-compose -f docker-compose.dev.yml up -d --wait postgres && concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:landing\"",
+    "dev": "docker-compose -f docker-compose.dev.yml up -d --wait postgres && concurrently \"npm run dev:server\" \"npm run dev:client\" \"npm run dev:admin\" \"npm run dev:landing\"",
     "dev:server": "npm run dev --workspace=server",
     "dev:client": "npm run dev --workspace=client",
+    "dev:admin": "npm run dev --workspace=admin",
     "dev:landing": "npm --prefix landing run dev",
     "build": "npm run build --workspace=server && npm run build --workspace=client",
     "db:migrate": "npm run migrate --workspace=server",
