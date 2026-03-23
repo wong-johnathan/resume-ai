@@ -205,13 +205,15 @@ model UserJobStatus {
 // ─── ADMIN ───────────────────────────────────────────────────────────────────
 
 model AdminUser {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  displayName String?
-  avatarUrl   String?
-  provider    String
-  providerId  String
-  createdAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  email        String    @unique
+  displayName  String?
+  avatarUrl    String?
+  provider     String
+  providerId   String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastActiveAt DateTime?
 
   @@unique([provider, providerId])
 }
@@ -222,6 +224,9 @@ model ActivityLog {
   action    ActivityAction
   metadata  Json?
   createdAt DateTime       @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action])
 }
 
 enum ActivityAction {
