@@ -62,11 +62,11 @@ landing/                          # standalone Next.js app, not in npm workspace
   app/
     layout.tsx                    # Server Component: root layout, font, metadata, globals
     page.tsx                      # Server Component: home page — composes all section components
-    globals.css                   # Tailwind base + CSS custom properties
+    globals.css                   # Tailwind base directives only (no CSS custom properties)
     sitemap.ts                    # auto-generated sitemap for SEO
     robots.ts                     # robots.txt for SEO
   components/
-    Navbar.tsx                    # 'use client' — sticky nav, logo left, CTA button right
+    Navbar.tsx                    # 'use client' — sticky nav, logo left, CTA button with whileHover animation
     Hero.tsx                      # 'use client' — dark hero, blobs, Framer Motion entrance
     WhySection.tsx                # 'use client' — 3 pain-point cards, scroll animations
     FeaturesSection.tsx           # 'use client' — bento grid, scroll animations
