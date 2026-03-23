@@ -40,7 +40,7 @@ export default function Hero() {
         {/* Badge */}
         <motion.div {...fadeUp(0)}>
           <span className="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 text-sm font-medium px-4 py-1.5 rounded-full mb-8">
-            <span aria-hidden="true">✦</span> AI-Powered Job Search
+            <span aria-hidden="true">✦</span> AI-Powered Job Preparation
           </span>
         </motion.div>
 
