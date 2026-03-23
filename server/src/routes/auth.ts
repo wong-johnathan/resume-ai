@@ -3,6 +3,7 @@ import passport from '../config/passport';
 import { env } from '../config/env';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
+import { logActivity, ActivityAction } from '../services/activityLog';
 
 const router = Router();
 
@@ -14,6 +15,8 @@ router.get('/me', (req, res) => {
 });
 
 router.post('/logout', (req, res, next) => {
+  const user = req.user as any;
+  if (user?.id) logActivity(user.id, ActivityAction.LOGOUT).catch(() => {});
   req.logout((err) => {
     if (err) return next(err);
     req.session.destroy(() => {
@@ -25,6 +28,13 @@ router.post('/logout', (req, res, next) => {
 router.delete('/account', requireAuth, async (req, res, next) => {
   try {
     const userId = getUser(req).id;
+    const fullUser = await prisma.user.findUnique({ where: { id: userId } });
+    await logActivity(userId, ActivityAction.ACCOUNT_DELETED, {
+      userId: userId,
+      email: fullUser?.email,
+      displayName: fullUser?.displayName,
+      createdAt: fullUser?.createdAt,
+    });
     await prisma.user.delete({ where: { id: userId } });
     req.logout((err) => {
       if (err) return next(err);

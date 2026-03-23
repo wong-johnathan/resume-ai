@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
+import { logActivity, ActivityAction } from '../services/activityLog';
 
 const router = Router();
 router.use(requireAuth);
@@ -45,6 +46,11 @@ router.post('/', validateBody(createJobSchema), async (req, res, next) => {
         appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : null,
       },
     });
+    logActivity(getUser(req).id, ActivityAction.JOB_CREATED, {
+      jobId: job.id,
+      company: job.company,
+      jobTitle: job.jobTitle,
+    }).catch(() => {});
     res.status(201).json(job);
   } catch (err) { next(err); }
 });
@@ -84,7 +90,16 @@ router.put('/:id', validateBody(updateJobSchema), async (req, res, next) => {
 
 router.delete('/:id', async (req, res, next) => {
   try {
-    await prisma.jobApplication.deleteMany({ where: { id: req.params.id, userId: getUser(req).id } });
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (job) {
+      await logActivity(userId, ActivityAction.JOB_DELETED, {
+        jobId: job.id,
+        company: job.company,
+        jobTitle: job.jobTitle,
+      });
+    }
+    await prisma.jobApplication.deleteMany({ where: { id: req.params.id, userId } });
     res.json({ success: true });
   } catch (err) { next(err); }
 });

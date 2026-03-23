@@ -4,6 +4,7 @@ import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
 import { parsePdfResume } from '../services/claude';
+import { logActivity, ActivityAction } from '../services/activityLog';
 
 const router = Router();
 router.use(requireAuth);
@@ -87,6 +88,7 @@ router.post('/', validateBody(profileSchema), async (req, res, next) => {
 router.put('/', validateBody(profileSchema), async (req, res, next) => {
   try {
     const profile = await prisma.profile.update({ where: { userId: getUser(req).id }, data: req.body });
+    logActivity(getUser(req).id, ActivityAction.PROFILE_UPDATED).catch(() => {});
     res.json(profile);
   } catch (err) { next(err); }
 });

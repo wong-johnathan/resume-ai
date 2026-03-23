@@ -6,6 +6,7 @@ import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
 import { tailorResume, TailorChanges, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
+import { logActivity, ActivityAction } from '../services/activityLog';
 
 const router = Router();
 router.use(requireAuth);
@@ -97,6 +98,10 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
       });
     }
 
+    logActivity(userId, ActivityAction.AI_TAILOR, {
+      jobId: req.body.jobId,
+      resumeId: clone.id,
+    }).catch(() => {});
     res.json(clone);
   } catch (err) { next(err); }
 });
@@ -151,6 +156,7 @@ router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, n
       });
     }
 
+    logActivity(userId, ActivityAction.AI_COVER_LETTER, { jobId: req.body.jobId ?? null }).catch(() => {});
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) { next(err); }
@@ -267,6 +273,7 @@ router.post('/generate-summary', validateBody(generateSummarySchema), async (req
       data: { summaryGenerations: { increment: 1 } },
     });
 
+    logActivity(userId, ActivityAction.AI_SUMMARY).catch(() => {});
     res.json({ summary, generationsUsed: profile.summaryGenerations + 1, generationsLimit: SUMMARY_GENERATION_LIMIT });
   } catch (err) { next(err); }
 });
@@ -281,6 +288,7 @@ const summarySchema = z.object({
 router.post('/improve-summary', validateBody(summarySchema), async (req, res, next) => {
   try {
     const improved = await improveSummary(req.body.currentSummary, req.body.targetRole);
+    logActivity(getUser(req).id, ActivityAction.AI_SUMMARY).catch(() => {});
     res.json({ summary: improved });
   } catch (err) { next(err); }
 });
@@ -377,6 +385,7 @@ router.post(
         update: { categories: categories as any },
       });
 
+      logActivity(user.id, ActivityAction.INTERVIEW_PREP_GENERATED, { jobId }).catch(() => {});
       res.json(prep);
     } catch (err) {
       next(err);
