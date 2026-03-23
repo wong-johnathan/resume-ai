@@ -10,7 +10,7 @@ export default function Hero() {
   const blobProps = prefersReducedMotion
     ? {}
     : {
-        animate: { scale: [1, 1.05, 1] } as const,
+        animate: { scale: [1, 1.05, 1] as number[] },
         transition: { duration: 6, repeat: Infinity, ease: 'easeInOut' as const },
       }
 
