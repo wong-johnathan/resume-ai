@@ -20,7 +20,7 @@ export function Sidebar({ open, onClose }: Props) {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/';
+    window.location.href = import.meta.env.VITE_LANDING_URL || '/';
   };
 
   return (

@@ -130,7 +130,7 @@ export function ProfilePage() {
     setDeleting(true);
     try {
       await deleteAccount();
-      window.location.href = '/';
+      window.location.href = import.meta.env.VITE_LANDING_URL || '/';
     } catch {
       addToast('Failed to delete account. Please try again.', 'error');
       setDeleting(false);
