@@ -4,7 +4,7 @@ import { FileText, Sparkles, Briefcase, Download } from 'lucide-react';
 const features = [
   { icon: FileText, title: 'Build Your Profile', desc: 'Enter your experience, skills, and education once. Reuse across all resumes.' },
   { icon: Sparkles, title: 'AI-Tailored Resumes', desc: 'Paste a job description and AI rewrites your resume to match it perfectly.' },
-  { icon: Briefcase, title: 'Track Applications', desc: 'Kanban board to manage every application from Saved to Offer.' },
+  { icon: Briefcase, title: 'Track Applications', desc: 'Table list to manage every application from Saved to Offer.' },
   { icon: Download, title: 'Export to PDF', desc: 'Download polished, print-ready PDFs from 4 professional templates.' },
 ];
 
