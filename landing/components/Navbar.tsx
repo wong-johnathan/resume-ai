@@ -15,8 +15,8 @@ export default function Navbar() {
           whileTap={{ scale: 0.97 }}
           className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm"
         >
-          <span className="hidden sm:inline">Get Started →</span>
-          <span className="sm:hidden">Start →</span>
+          <span className="hidden sm:inline">Get Started <span aria-hidden="true">→</span></span>
+          <span className="sm:hidden">Start <span aria-hidden="true">→</span></span>
         </motion.a>
       </div>
     </header>

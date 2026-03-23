@@ -26,14 +26,30 @@ const steps = [
 export default function HowItWorks() {
   const prefersReducedMotion = useReducedMotion()
 
+  const fadeHeading = prefersReducedMotion
+    ? {}
+    : {
+        initial: { opacity: 0, y: 20 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true as const },
+        transition: { duration: 0.5 },
+      }
+
+  const fadeCard = (delay = 0) =>
+    prefersReducedMotion
+      ? {}
+      : {
+          initial: { opacity: 0, y: 24 },
+          whileInView: { opacity: 1, y: 0 },
+          viewport: { once: true as const },
+          transition: { duration: 0.5, delay },
+        }
+
   return (
     <section id="how-it-works" className="bg-white py-20 sm:py-28">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.h2
-          initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          {...fadeHeading}
           className="text-3xl sm:text-4xl font-bold text-gray-900 text-center mb-14"
         >
           Get started in minutes
@@ -46,10 +62,7 @@ export default function HowItWorks() {
           {steps.map((step, i) => (
             <motion.div
               key={step.number}
-              initial={prefersReducedMotion ? {} : { opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.15 }}
+              {...fadeCard(i * 0.15)}
               className="flex flex-col items-center text-center"
             >
               <div className="relative z-10 inline-flex items-center justify-center w-16 h-16 rounded-full border-2 border-blue-500 text-blue-500 font-bold text-lg mb-5 bg-white">

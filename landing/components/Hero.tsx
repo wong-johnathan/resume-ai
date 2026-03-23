@@ -75,13 +75,13 @@ export default function Hero() {
             whileTap={{ scale: 0.97 }}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold px-8 py-3.5 rounded-lg transition-colors text-lg w-full sm:w-auto text-center"
           >
-            Get Started Free →
+            Get Started Free <span aria-hidden="true">→</span>
           </motion.a>
           <a
             href="#how-it-works"
             className="text-gray-400 hover:text-white transition-colors text-sm"
           >
-            See how it works ↓
+            See how it works <span aria-hidden="true">↓</span>
           </a>
         </motion.div>
       </div>

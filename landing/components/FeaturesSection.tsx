@@ -78,7 +78,7 @@ export default function FeaturesSection() {
               {...fadeUp(i * 0.1)}
               className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100"
             >
-              <span className="text-4xl mb-4 block">{feature.icon}</span>
+              <span className="text-4xl mb-4 block" aria-hidden="true">{feature.icon}</span>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
               <p className="text-gray-500 leading-relaxed">{feature.description}</p>
             </motion.div>
@@ -93,7 +93,7 @@ export default function FeaturesSection() {
               {...fadeUp(0.2 + i * 0.08)}
               className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
             >
-              <span className="text-3xl mb-3 block">{feature.icon}</span>
+              <span className="text-3xl mb-3 block" aria-hidden="true">{feature.icon}</span>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">{feature.title}</h3>
               <p className="text-gray-500 text-sm leading-relaxed">{feature.description}</p>
             </motion.div>

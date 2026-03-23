@@ -12,7 +12,7 @@ export default function Footer() {
           href={APP_URL}
           className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
         >
-          Go to app →
+          Go to app <span aria-hidden="true">→</span>
         </a>
       </div>
     </footer>
