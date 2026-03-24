@@ -23,7 +23,7 @@ export default function Login() {
           </div>
         )}
         <a
-          href="/api/admin/auth/google"
+          href={`${import.meta.env.VITE_API_URL ?? '/api'}/admin/auth/google`}
           className="flex items-center justify-center gap-3 w-full px-4 py-3 rounded-xl bg-white text-gray-900 font-medium text-sm hover:bg-gray-100 transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 48 48">
