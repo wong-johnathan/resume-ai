@@ -25,6 +25,10 @@ const createJobSchema = z.object({
 
 const updateJobSchema = createJobSchema.partial();
 
+const updateHistoryNoteSchema = z.object({
+  note: z.string().max(1000).nullable(),
+});
+
 router.get('/', async (req, res, next) => {
   try {
     const { status } = req.query;
@@ -143,6 +147,33 @@ router.put('/:id/resume', async (req, res, next) => {
     });
     if (job.count === 0) return res.status(404).json({ error: 'Job not found' });
     res.json({ success: true });
+  } catch (err) { next(err); }
+});
+
+router.patch('/:id/status-history/:historyId', validateBody(updateHistoryNoteSchema), async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const entry = await prisma.jobStatusHistory.findFirst({
+      where: { id: req.params.historyId as string, job: { userId } },
+    });
+    if (!entry) return res.status(404).json({ error: 'Not found' });
+    const updated = await prisma.jobStatusHistory.update({
+      where: { id: entry.id },
+      data: { note: req.body.note },
+    });
+    res.json(updated);
+  } catch (err) { next(err); }
+});
+
+router.delete('/:id/status-history/:historyId', async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const entry = await prisma.jobStatusHistory.findFirst({
+      where: { id: req.params.historyId as string, job: { userId } },
+    });
+    if (!entry) return res.status(404).json({ error: 'Not found' });
+    await prisma.jobStatusHistory.delete({ where: { id: entry.id } });
+    res.status(204).send();
   } catch (err) { next(err); }
 });
 
