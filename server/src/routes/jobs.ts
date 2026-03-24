@@ -62,6 +62,7 @@ router.get('/:id', async (req, res, next) => {
       include: {
         resume: true,
         aiAmendments: { orderBy: { createdAt: 'desc' } },
+        statusHistory: { orderBy: { createdAt: 'desc' } },
       },
     });
     if (!job) return res.status(404).json({ error: 'Job not found' });
@@ -71,18 +72,46 @@ router.get('/:id', async (req, res, next) => {
 
 router.put('/:id', validateBody(updateJobSchema), async (req, res, next) => {
   try {
-    const job = await prisma.jobApplication.updateMany({
-      where: { id: req.params.id as string, userId: getUser(req).id },
-      data: {
-        ...req.body,
-        appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : undefined,
-        ...(req.body.status !== undefined ? { statusUpdatedAt: new Date() } : {}),
+    const userId = getUser(req).id;
+    const id = req.params.id as string;
+
+    // Ownership check + read current status before updating
+    const existing = await prisma.jobApplication.findFirst({ where: { id, userId } });
+    if (!existing) return res.status(404).json({ error: 'Job not found' });
+
+    const isStatusChanging =
+      req.body.status !== undefined && req.body.status !== existing.status;
+
+    const updateData = {
+      ...req.body,
+      appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : undefined,
+      ...(req.body.status !== undefined ? { statusUpdatedAt: new Date() } : {}),
+    };
+
+    if (isStatusChanging) {
+      // Atomic: update job + write history in one transaction
+      await prisma.$transaction(async (tx) => {
+        await tx.jobApplication.update({ where: { id }, data: updateData });
+        await tx.jobStatusHistory.create({
+          data: {
+            jobId: id,
+            fromStatus: existing.status,
+            toStatus: req.body.status,
+          },
+        });
+      });
+    } else {
+      await prisma.jobApplication.update({ where: { id }, data: updateData });
+    }
+
+    // Fetch final state with all includes
+    const updated = await prisma.jobApplication.findFirst({
+      where: { id, userId },
+      include: {
+        resume: true,
+        aiAmendments: { orderBy: { createdAt: 'desc' } },
+        statusHistory: { orderBy: { createdAt: 'desc' } },
       },
-    });
-    if (job.count === 0) return res.status(404).json({ error: 'Job not found' });
-    const updated = await prisma.jobApplication.findUnique({
-      where: { id: req.params.id as string },
-      include: { resume: true, aiAmendments: { orderBy: { createdAt: 'desc' } } },
     });
     res.json(updated);
   } catch (err) { next(err); }
