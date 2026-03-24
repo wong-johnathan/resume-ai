@@ -19,6 +19,7 @@ import { useTour } from '../hooks/useTour';
 import { TakeTourButton } from '../components/tour/TakeTourButton';
 import { InterviewPrepPanel } from '../components/jobs/InterviewPrepPanel';
 import { StatusTimeline } from '../components/jobs/StatusTimeline';
+import { FitScoreDonut } from '../components/jobs/FitScoreDonut';
 
 const AI_AMENDMENT_LIMIT = 3;
 
@@ -57,6 +58,7 @@ export function JobDetailPage() {
   const [tailorSourceId, setTailorSourceId] = useState('');
   const [notes, setNotes] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
   const abortRef = useRef<(() => void) | null>(null);
 
   // Status change note prompt state
@@ -304,57 +306,85 @@ export function JobDetailPage() {
       {/* Job Info & Fit */}
       {activeTab === 'info' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-3 text-sm">Job Description</h2>
-            {job.description
-              ? <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-60 overflow-y-auto">{job.description}</pre>
-              : <p className="text-xs text-gray-400">No description added. <button onClick={openEdit} className="text-blue-500 hover:underline">Add one</button></p>
-            }
-          </div>
 
           {job.fitAnalysis && (() => {
             const fa = job.fitAnalysis as FitAnalysis;
-            const scoreColor = fa.score >= 70 ? 'text-green-700 bg-green-50 border-green-200' : fa.score >= 40 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
-            const scoreLabel = fa.score >= 70 ? 'Strong Match' : fa.score >= 40 ? 'Moderate Match' : 'Weak Match';
             return (
-              <div className="bg-white rounded-xl border shadow-sm p-5">
-                <h2 className="font-semibold text-gray-900 text-sm mb-3 flex items-center gap-1.5">
-                  <Sparkles size={14} className="text-blue-500" /> Fit Analysis
-                </h2>
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 mb-4 ${scoreColor}`}>
-                  <span className="text-2xl font-bold">{fa.score}%</span>
-                  <span className="text-xs font-semibold">{scoreLabel}</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                  <div className="rounded-lg border border-green-100 bg-green-50 p-3">
-                    <p className="text-xs font-semibold text-green-700 mb-1.5 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Strengths
-                    </p>
-                    <ul className="space-y-1">
-                      {fa.strengths.map((s, i) => (
-                        <li key={i} className="text-xs text-green-800 flex items-start gap-1.5">
-                          <span className="flex-shrink-0 mt-0.5">•</span>{s}
-                        </li>
-                      ))}
-                    </ul>
+              <>
+                {/* Row 1: Match score + AI summary */}
+                <div className="grid grid-cols-[1fr_1.6fr] gap-4">
+                  <div className="bg-white rounded-xl border shadow-sm p-5 flex items-center justify-center">
+                    <FitScoreDonut score={fa.score} />
                   </div>
-                  <div className="rounded-lg border border-amber-100 bg-amber-50 p-3">
-                    <p className="text-xs font-semibold text-amber-700 mb-1.5 flex items-center gap-1">
-                      <AlertTriangle size={12} /> Gaps to Address
-                    </p>
-                    <ul className="space-y-1">
-                      {fa.gaps.map((g, i) => (
-                        <li key={i} className="text-xs text-amber-800 flex items-start gap-1.5">
-                          <span className="flex-shrink-0 mt-0.5">•</span>{g}
-                        </li>
-                      ))}
-                    </ul>
+                  <div className="bg-white rounded-xl border shadow-sm p-5">
+                    <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wide mb-2">✦ AI Summary</p>
+                    <p className="text-sm text-gray-700 leading-relaxed">{fa.summary}</p>
                   </div>
                 </div>
-                <p className="text-xs text-gray-600 italic border-l-2 border-gray-200 pl-3">{fa.summary}</p>
-              </div>
+
+                {/* Row 2: Role Breakdown */}
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900 mb-3">Role Breakdown</h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-xl border border-green-200 shadow-sm p-4">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <CheckCircle2 size={13} className="text-green-600" />
+                        <span className="text-xs font-semibold text-green-700">Key Strengths</span>
+                      </div>
+                      <ul className="space-y-2">
+                        {fa.strengths.map((s, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
+                            <span className="flex-shrink-0 mt-0.5 text-green-500">•</span>{s}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="bg-white rounded-xl border border-red-200 shadow-sm p-4">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <AlertTriangle size={13} className="text-red-500" />
+                        <span className="text-xs font-semibold text-red-600">Missing & Weak Points</span>
+                      </div>
+                      <ul className="space-y-2">
+                        {fa.gaps.map((g, i) => (
+                          <li key={i} className="flex items-start gap-1.5 text-xs text-gray-700">
+                            <span className="flex-shrink-0 mt-0.5 text-red-400">•</span>{g}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </>
             );
           })()}
+
+          {/* Row 3: Job Description */}
+          <div className="bg-white rounded-xl border shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-3 text-sm">Job Description</h2>
+            {job.description ? (
+              <>
+                <pre
+                  className={`text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed overflow-hidden ${
+                    descExpanded ? '' : 'line-clamp-5'
+                  }`}
+                >
+                  {job.description}
+                </pre>
+                <button
+                  onClick={() => setDescExpanded((v) => !v)}
+                  className="mt-2 text-xs text-blue-500 hover:underline"
+                >
+                  {descExpanded ? 'Show less ↑' : 'Show full description ↓'}
+                </button>
+              </>
+            ) : (
+              <p className="text-xs text-gray-400">
+                No description added.{' '}
+                <button onClick={openEdit} className="text-blue-500 hover:underline">Add one</button>
+              </p>
+            )}
+          </div>
+
         </div>
       )}
 
