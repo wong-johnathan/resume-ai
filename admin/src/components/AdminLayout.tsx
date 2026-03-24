@@ -1,13 +1,12 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, FileText, Activity, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Activity, LogOut } from 'lucide-react';
 import { useAdminAuth } from '../context/AdminAuthContext';
 import { adminApi } from '../api/admin';
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/users', label: 'Users', icon: Users },
-  { to: '/resumes', label: 'Resumes', icon: FileText },
   { to: '/logs', label: 'Activity Logs', icon: Activity },
 ];
 

@@ -80,6 +80,19 @@ router.get('/:userId', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// GET /api/admin/users/:userId/jobs/:jobId
+router.get('/:userId/jobs/:jobId', async (req, res, next) => {
+  try {
+    const { userId, jobId } = req.params;
+    const job = await prisma.jobApplication.findFirst({
+      where: { id: jobId, userId },
+      include: { aiAmendments: { select: { type: true, createdAt: true } } },
+    });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    res.json(job);
+  } catch (err) { next(err); }
+});
+
 // DELETE /api/admin/users/:userId
 router.delete('/:userId', async (req, res, next) => {
   try {

@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import UserDetail from './pages/UserDetail';
 import Logs from './pages/Logs';
-import Resumes from './pages/Resumes';
+import JobDetail from './pages/JobDetail';
 
 const queryClient = new QueryClient();
 
@@ -28,7 +28,7 @@ export default function App() {
             <Route path="/dashboard" element={<AdminAuthGuard><Dashboard /></AdminAuthGuard>} />
             <Route path="/users" element={<AdminAuthGuard><Users /></AdminAuthGuard>} />
             <Route path="/users/:userId" element={<AdminAuthGuard><UserDetail /></AdminAuthGuard>} />
-            <Route path="/resumes" element={<AdminAuthGuard><Resumes /></AdminAuthGuard>} />
+            <Route path="/users/:userId/jobs/:jobId" element={<AdminAuthGuard><JobDetail /></AdminAuthGuard>} />
             <Route path="/logs" element={<AdminAuthGuard><Logs /></AdminAuthGuard>} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

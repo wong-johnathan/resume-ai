@@ -42,6 +42,24 @@ export interface ResumeSummary {
   user: { id: string; email: string; displayName: string | null };
 }
 
+export interface JobDetail {
+  id: string;
+  company: string;
+  jobTitle: string;
+  jobUrl: string | null;
+  description: string | null;
+  status: string;
+  statusUpdatedAt: string | null;
+  appliedAt: string | null;
+  notes: string | null;
+  coverLetter: string | null;
+  salary: string | null;
+  location: string | null;
+  createdAt: string;
+  updatedAt: string;
+  aiAmendments: { type: string; createdAt: string }[];
+}
+
 export interface ActivityLogEntry {
   id: string;
   userId: string;
@@ -75,6 +93,9 @@ export const adminApi = {
   getResumes: (params?: { page?: number; limit?: number; status?: string }) =>
     api.get<PaginatedResponse<ResumeSummary>>('/admin/resumes', { params }).then((r) => r.data),
   deleteResume: (resumeId: string) => api.delete(`/admin/resumes/${resumeId}`).then((r) => r.data),
+
+  getJob: (userId: string, jobId: string) =>
+    api.get<JobDetail>(`/admin/users/${userId}/jobs/${jobId}`).then((r) => r.data),
 
   getLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
     api.get<PaginatedResponse<ActivityLogEntry>>('/admin/logs', { params }).then((r) => r.data),

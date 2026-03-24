@@ -130,7 +130,11 @@ export default function UserDetail() {
               </thead>
               <tbody className="divide-y divide-gray-800">
                 {jobs.map((j) => (
-                  <tr key={j.id} className="bg-gray-950 hover:bg-gray-900">
+                  <tr
+                    key={j.id}
+                    className="bg-gray-950 hover:bg-gray-900 cursor-pointer"
+                    onClick={() => navigate(`/users/${userId}/jobs/${j.id}`)}
+                  >
                     <td className="px-4 py-3 text-gray-200">{j.company}</td>
                     <td className="px-4 py-3 text-gray-400">{j.jobTitle}</td>
                     <td className="px-4 py-3 text-gray-400">{j.status}</td>
