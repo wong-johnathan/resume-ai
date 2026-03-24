@@ -248,7 +248,7 @@ export function JobDetailPage() {
       <div className="mb-4">
         <div className="flex items-center gap-3">
           <span className="text-xs font-medium text-gray-500 whitespace-nowrap">Status</span>
-          <div className="w-48">
+          <div className="w-48" data-tour="status-select">
             <Select
               options={statuses.map((s) => ({ value: s.label, label: s.label }))}
               value={job.status}
@@ -281,10 +281,11 @@ export function JobDetailPage() {
 
       {/* ── Tab bar ── */}
       <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-0">
+        <nav className="flex gap-0" data-tour="tab-bar">
           {TABS.map((tab) => (
             <button
               key={tab.id}
+              data-tour={`tab-${tab.id}`}
               onClick={() => setTab(tab.id)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
