@@ -1,5 +1,5 @@
 import api from './client';
-import { JobApplication, ApplicationStatus } from '../types';
+import { JobApplication, ApplicationStatus, JobStatusHistory } from '../types';
 
 export const getJobs = (status?: ApplicationStatus) =>
   api.get<JobApplication[]>('/jobs', { params: status ? { status } : {} }).then((r) => r.data);
@@ -7,8 +7,8 @@ export const getJob = (id: string) => api.get<JobApplication>(`/jobs/${id}`).the
 export const createJob = (data: Partial<JobApplication>) => api.post<JobApplication>('/jobs', data).then((r) => r.data);
 export const updateJob = (id: string, data: Partial<JobApplication>) => api.put<JobApplication>(`/jobs/${id}`, data).then((r) => r.data);
 export const deleteJob = (id: string) => api.delete(`/jobs/${id}`);
-export const updateStatusHistoryNote = (jobId: string, historyId: string, note: string | null) =>
-  api.patch(`/jobs/${jobId}/status-history/${historyId}`, { note }).then((r) => r.data);
+export const updateStatusHistoryNote = (jobId: string, historyId: string, note: string | null): Promise<JobStatusHistory> =>
+  api.patch<JobStatusHistory>(`/jobs/${jobId}/status-history/${historyId}`, { note }).then((r) => r.data);
 export const deleteStatusHistoryEntry = (jobId: string, historyId: string) =>
   api.delete(`/jobs/${jobId}/status-history/${historyId}`);
 export const linkResume = (jobId: string, resumeId: string | null) => api.put(`/jobs/${jobId}/resume`, { resumeId });
