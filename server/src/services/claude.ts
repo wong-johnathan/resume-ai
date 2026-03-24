@@ -652,3 +652,81 @@ export async function evaluateInterviewAnswer(
     sampleResponse: parsed.sampleResponse ?? '',
   };
 }
+
+// ─── Sample Job Generation ────────────────────────────────────────────────────
+
+interface SampleProfileInput {
+  summary?: string | null;
+  experiences: Array<{ title: string; company: string }>;
+  skills: Array<{ name: string; level: string }>;
+}
+
+export interface SampleJobResult {
+  company: string;
+  location: string;
+  description: string;
+  fitAnalysis: FitAnalysis;
+}
+
+export async function generateSampleJobTitles(profile: SampleProfileInput): Promise<string[]> {
+  const experienceText = profile.experiences.map((e) => `${e.title} at ${e.company}`).join(', ');
+  const skillsList = profile.skills.slice(0, 10).map((s) => s.name).join(', ');
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 200,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'user',
+        content: `Suggest exactly 5 job titles for this candidate, ordered from LEAST compatible to MOST compatible with their background.
+
+Candidate:
+Experience: ${experienceText}
+Skills: ${skillsList}${profile.summary ? `\nSummary: ${profile.summary}` : ''}
+
+Return ONLY valid JSON: { "titles": ["title1", "title2", "title3", "title4", "title5"] }
+First title should be quite different from their background. Last title should be a very strong match.`,
+      },
+    ],
+  });
+
+  const parsed = JSON.parse(response.choices[0].message.content ?? '{}');
+  return Array.isArray(parsed.titles) ? parsed.titles.slice(0, 5) : [];
+}
+
+export async function generateSampleJob(jobTitle: string, profile: SampleProfileInput): Promise<SampleJobResult> {
+  const skillsList = profile.skills.slice(0, 10).map((s) => `${s.name} (${s.level})`).join(', ');
+  const experienceText = profile.experiences.slice(0, 3).map((e) => `${e.title} at ${e.company}`).join(', ');
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 1400,
+    response_format: { type: 'json_object' },
+    messages: [
+      {
+        role: 'user',
+        content: `Generate a realistic sample job posting for the title "${jobTitle}" and analyze how well this candidate fits it. Write the fitAnalysis in second person (e.g. "Your X years of...").
+
+Candidate:
+${profile.summary ? `Summary: ${profile.summary}\n` : ''}Experience: ${experienceText}
+Skills: ${skillsList}
+
+Return ONLY valid JSON:
+{
+  "company": "a realistic fictional company name",
+  "location": "City, State (Remote/Hybrid/On-site)",
+  "description": "full realistic job posting, 400-600 words",
+  "fitAnalysis": {
+    "score": <integer 0-100>,
+    "strengths": ["3-5 second-person strings, e.g. Your X years of Y..."],
+    "gaps": ["3-5 second-person strings, e.g. You haven't listed..."],
+    "summary": "1-2 sentence narrative in second person"
+  }
+}`,
+      },
+    ],
+  });
+
+  return JSON.parse(response.choices[0].message.content ?? '{}') as SampleJobResult;
+}
