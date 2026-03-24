@@ -5,7 +5,7 @@ import { requireAdmin, getAdmin } from '../../middleware/requireAdmin';
 
 const router = Router();
 
-router.get('/google', passport.authenticate('google-admin', { scope: ['profile', 'email'] }));
+router.get('/google', passport.authenticate('google-admin', { scope: ['profile', 'email'], prompt: 'select_account' }));
 
 router.get(
   '/google/callback',
