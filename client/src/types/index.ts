@@ -141,6 +141,15 @@ export interface AiAmendment {
   createdAt: string;
 }
 
+export interface JobStatusHistory {
+  id: string;
+  jobId: string;
+  fromStatus: string;
+  toStatus: string;
+  note?: string | null;
+  createdAt: string;
+}
+
 export interface JobApplication {
   id: string;
   userId: string;
@@ -161,6 +170,7 @@ export interface JobApplication {
   createdAt: string;
   updatedAt: string;
   aiAmendments?: AiAmendment[];
+  statusHistory?: JobStatusHistory[];
 }
 
 export interface InterviewFeedback {
