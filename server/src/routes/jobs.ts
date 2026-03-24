@@ -113,6 +113,7 @@ router.put('/:id', validateBody(updateJobSchema), async (req, res, next) => {
         statusHistory: { orderBy: { createdAt: 'desc' } },
       },
     });
+    if (!updated) return res.status(404).json({ error: 'Job not found' });
     res.json(updated);
   } catch (err) { next(err); }
 });
