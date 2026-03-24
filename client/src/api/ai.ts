@@ -1,5 +1,5 @@
 import api from './client';
-import { Resume, FitAnalysis } from '../types';
+import { Resume, FitAnalysis, JobApplication } from '../types';
 
 export interface ExtractedJobInfo {
   company: string;
@@ -73,3 +73,29 @@ export function streamCoverLetter(
 
   return () => controller.abort();
 }
+
+export interface SampleJobStatusResponse {
+  generationsUsed: number;
+  generationsLimit: number;
+}
+
+export interface SampleTitlesResponse {
+  titles: string[];
+  generationsUsed: number;
+  generationsLimit: number;
+}
+
+export interface SampleJobResponse {
+  job: JobApplication;
+  generationsUsed: number;
+  generationsLimit: number;
+}
+
+export const getSampleJobStatus = () =>
+  api.get<SampleJobStatusResponse>('/ai/sample-job-status').then((r) => r.data);
+
+export const getSampleTitles = () =>
+  api.post<SampleTitlesResponse>('/ai/sample-titles').then((r) => r.data);
+
+export const createSampleJob = (jobTitle: string) =>
+  api.post<SampleJobResponse>('/ai/sample-job', { jobTitle }).then((r) => r.data);
