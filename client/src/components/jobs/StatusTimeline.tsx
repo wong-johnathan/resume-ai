@@ -4,6 +4,7 @@ import { JobStatusHistory } from '../../types';
 import { updateStatusHistoryNote, deleteStatusHistoryEntry } from '../../api/jobs';
 import { Button } from '../ui/Button';
 import { Textarea } from '../ui/Textarea';
+import { useAppStore } from '../../store/useAppStore';
 
 interface Props {
   jobId: string;
@@ -24,6 +25,7 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
   const [savingNote, setSavingNote] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { addToast } = useAppStore();
 
   // Sync local note value if parent entry changes
   useEffect(() => { setNoteValue(entry.note ?? ''); }, [entry.note]);
@@ -34,7 +36,11 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
       const updated = await updateStatusHistoryNote(jobId, entry.id, noteValue.trim() || null);
       onUpdated({ ...entry, note: updated.note });
       setEditingNote(false);
-    } finally { setSavingNote(false); }
+    } catch {
+      addToast('Failed to save note', 'error');
+    } finally {
+      setSavingNote(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -42,7 +48,11 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
     try {
       await deleteStatusHistoryEntry(jobId, entry.id);
       onDeleted(entry.id);
-    } finally { setDeleting(false); }
+    } catch {
+      addToast('Failed to delete entry', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const date = new Date(entry.createdAt).toLocaleDateString('en-US', {
@@ -65,6 +75,7 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
           <button
             title="Edit note"
             onClick={() => { setEditingNote(true); setConfirmDelete(false); }}
+            disabled={savingNote || deleting}
             className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50"
           >
             <Pencil size={13} />
@@ -72,6 +83,7 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
           <button
             title="Delete entry"
             onClick={() => { setConfirmDelete(true); setEditingNote(false); }}
+            disabled={savingNote || deleting}
             className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50"
           >
             <Trash2 size={13} />
@@ -117,7 +129,7 @@ function EntryRow({ jobId, entry, onUpdated, onDeleted }: EntryRowProps) {
             <Button size="sm" onClick={handleDelete} loading={deleting} className="bg-red-600 hover:bg-red-700 text-white border-red-600">
               Confirm
             </Button>
-            <Button size="sm" variant="secondary" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+            <Button size="sm" variant="secondary" disabled={deleting} onClick={() => setConfirmDelete(false)}>Cancel</Button>
           </div>
         </div>
       )}
