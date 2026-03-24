@@ -97,86 +97,89 @@ export function SampleJobModal({ open, onClose, onCreated, initialUsed }: Props)
             </span>
           </div>
 
-          {atLimit ? (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
-              You've used all {LIMIT} sample job generations.
-            </div>
-          ) : (
-            <>
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-2">
-                  {loadingTitles
-                    ? 'Generating suggestions from your profile…'
-                    : 'Suggested titles — least → most compatible with your profile'}
-                </p>
-                {loadingTitles ? (
-                  <div className="flex flex-wrap gap-2">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <div key={i} className="h-8 w-28 bg-gray-100 rounded-full animate-pulse" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {titles.map((title, i) => (
-                      <button
-                        key={i}
-                        onClick={() => { setSelectedTitle(title); setCustomTitle(''); }}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                          selectedTitle === title && !customTitle
-                            ? 'bg-blue-600 text-white border-blue-600'
-                            : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                        }`}
-                      >
-                        {i === 0 && <span className="mr-1 opacity-50">↓</span>}
-                        {i === titles.length - 1 && <span className="mr-1 opacity-60">★</span>}
-                        {title}
-                      </button>
-                    ))}
-                  </div>
-                )}
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-2">
+              {loadingTitles
+                ? 'Generating suggestions from your profile…'
+                : 'Suggested titles — least → most compatible with your profile'}
+            </p>
+            {loadingTitles ? (
+              <div className="flex flex-wrap gap-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-8 w-28 bg-gray-100 rounded-full animate-pulse" />
+                ))}
               </div>
-
-              <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">Or enter your own title</p>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => { setCustomTitle(e.target.value); setSelectedTitle(''); }}
-                  placeholder="e.g. Senior Product Manager"
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {error && (
-                <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
-                  {error}
-                </p>
-              )}
-
-              {alreadyGenerated && (
-                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
-                  Already generated — open the job below ↓
-                </p>
-              )}
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button variant="secondary" onClick={onClose}>Cancel</Button>
-                {alreadyGenerated ? (
-                  <Button onClick={() => setStep('preview')}>
-                    View Preview →
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleGenerate}
-                    loading={generating}
-                    disabled={!effectiveTitle}
+            ) : (
+              <div className={`flex flex-wrap gap-2 ${atLimit ? 'pointer-events-none opacity-60' : ''}`}>
+                {titles.map((title, i) => (
+                  <button
+                    key={i}
+                    onClick={() => { setSelectedTitle(title); setCustomTitle(''); }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                      selectedTitle === title && !customTitle
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
+                    }`}
                   >
-                    <Sparkles size={14} /> Generate Sample →
-                  </Button>
-                )}
+                    {i === 0 && <span className="mr-1 opacity-50">↓</span>}
+                    {i === titles.length - 1 && <span className="mr-1 opacity-60">★</span>}
+                    {title}
+                  </button>
+                ))}
               </div>
-            </>
+            )}
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-gray-500 mb-1">Or enter your own title</p>
+            <input
+              type="text"
+              value={customTitle}
+              onChange={(e) => { setCustomTitle(e.target.value); setSelectedTitle(''); }}
+              placeholder="e.g. Senior Product Manager"
+              disabled={atLimit}
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-3 bg-red-50 rounded-lg px-3 py-2 border border-red-100">
+              <p className="text-xs text-red-500 flex-1">{error}</p>
+              <button
+                onClick={handleGenerate}
+                className="text-xs text-red-600 font-medium hover:underline flex-shrink-0"
+              >
+                Try Again
+              </button>
+            </div>
           )}
+
+          {alreadyGenerated && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100">
+              Already generated — open the job below ↓
+            </p>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={onClose}>Cancel</Button>
+            {atLimit ? (
+              <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-700">
+                You've used all {LIMIT} sample job generations.
+              </div>
+            ) : alreadyGenerated ? (
+              <Button onClick={() => setStep('preview')}>
+                View Preview →
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerate}
+                loading={generating}
+                disabled={!effectiveTitle}
+              >
+                <Sparkles size={14} /> Generate Sample →
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
