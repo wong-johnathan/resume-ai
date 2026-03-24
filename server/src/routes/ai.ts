@@ -4,12 +4,48 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
-import { tailorResume, TailorChanges, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, InterviewCategory, InterviewFeedback } from '../services/claude';
+import { tailorResume, TailorChanges, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, generateSampleJobTitles, generateSampleJob, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
 import { logActivity, ActivityAction } from '../services/activityLog';
 
 const router = Router();
 router.use(requireAuth);
+
+// ─── Sample job status (DB-only, no rate limit) ───────────────────────────────
+
+const SAMPLE_JOB_LIMIT = 3;
+
+router.get('/sample-job-status', async (req, res, next) => {
+  try {
+    const profile = await prisma.profile.findUnique({
+      where: { userId: getUser(req).id },
+      select: { sampleJobsGenerated: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    res.json({ generationsUsed: profile.sampleJobsGenerated, generationsLimit: SAMPLE_JOB_LIMIT });
+  } catch (err) { next(err); }
+});
+
+// ─── Sample job titles (AI call, but exempt from rate limit) ─────────────────
+
+router.post('/sample-titles', async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+    const titles = await generateSampleJobTitles({
+      summary: profile.summary,
+      experiences: profile.experiences.map((e) => ({ title: e.title, company: e.company })),
+      skills: profile.skills.map((s) => ({ name: s.name, level: s.level })),
+    });
+
+    res.json({ titles, generationsUsed: profile.sampleJobsGenerated, generationsLimit: SAMPLE_JOB_LIMIT });
+  } catch (err) { next(err); }
+});
 
 const aiRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -528,6 +564,67 @@ router.post(
     }
   }
 );
+
+// ─── Generate sample job ──────────────────────────────────────────────────────
+
+const sampleJobSchema = z.object({
+  jobTitle: z.string().min(2),
+});
+
+router.post('/sample-job', validateBody(sampleJobSchema), async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+
+    if (profile.sampleJobsGenerated >= SAMPLE_JOB_LIMIT) {
+      return res.status(403).json({ error: `Sample job limit of ${SAMPLE_JOB_LIMIT} reached.` });
+    }
+
+    // AI call outside the transaction — if it fails, counter is not incremented
+    const result = await generateSampleJob(req.body.jobTitle, {
+      summary: profile.summary,
+      experiences: profile.experiences.map((e) => ({ title: e.title, company: e.company })),
+      skills: profile.skills.map((s) => ({ name: s.name, level: s.level })),
+    });
+
+    // Fetch first user status for default job status
+    const firstStatus = await prisma.userJobStatus.findFirst({
+      where: { userId },
+      orderBy: { order: 'asc' },
+    });
+
+    // Atomic: create job + increment counter
+    let job: any;
+    await prisma.$transaction(async (tx) => {
+      job = await tx.jobApplication.create({
+        data: {
+          userId,
+          jobTitle: `(EXAMPLE) ${req.body.jobTitle}`,
+          company: result.company,
+          location: result.location,
+          description: result.description,
+          fitAnalysis: result.fitAnalysis as any,
+          status: firstStatus?.label ?? 'SAVED',
+        },
+      });
+      await tx.profile.update({
+        where: { id: profile.id },
+        data: { sampleJobsGenerated: { increment: 1 } },
+      });
+    });
+
+    res.status(201).json({
+      job,
+      generationsUsed: profile.sampleJobsGenerated + 1,
+      generationsLimit: SAMPLE_JOB_LIMIT,
+    });
+  } catch (err) { next(err); }
+});
 
 export default router;
 
