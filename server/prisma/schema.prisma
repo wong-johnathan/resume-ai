@@ -161,6 +161,7 @@ model JobApplication {
 
   aiAmendments  AiAmendment[]
   interviewPrep InterviewPrep?
+  statusHistory JobStatusHistory[]
 }
 
 model AiAmendment {
@@ -176,6 +177,18 @@ model AiAmendment {
 enum AiAmendmentType {
   RESUME_TAILOR
   COVER_LETTER
+}
+
+model JobStatusHistory {
+  id         String         @id @default(cuid())
+  jobId      String
+  job        JobApplication @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  fromStatus String
+  toStatus   String
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  @@index([jobId])
 }
 
 // ─── INTERVIEW PREP ──────────────────────────────────────────────────────────
