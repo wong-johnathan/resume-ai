@@ -10,7 +10,10 @@ router.get('/', async (req, res, next) => {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(200, Math.max(1, parseInt(req.query.limit as string) || 50));
     const userId = req.query.userId as string | undefined;
-    const action = req.query.action as ActivityAction | undefined;
+    const rawAction = req.query.action as string | undefined;
+    const action = rawAction && Object.values(ActivityAction).includes(rawAction as ActivityAction)
+      ? rawAction as ActivityAction
+      : undefined;
     const skip = (page - 1) * limit;
 
     const where: any = {};

@@ -9,7 +9,9 @@ router.get('/', async (req, res, next) => {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
-    const status = req.query.status as string | undefined;
+    const rawStatus = req.query.status as string | undefined;
+    const validStatuses = ['DRAFT', 'FINAL', 'ARCHIVED'];
+    const status = rawStatus && validStatuses.includes(rawStatus) ? rawStatus : undefined;
     const skip = (page - 1) * limit;
 
     const where = status ? { status: status as any } : {};

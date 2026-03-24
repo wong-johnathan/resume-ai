@@ -43,7 +43,7 @@ router.get('/:userId', async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    const [user, resumes, jobs, aiAmendmentCount, activityLog] = await Promise.all([
+    const [user, resumes, jobs, aiAmendmentCount, activityLog, aiTailor, aiCoverLetter, aiInterviewPrep, aiSummary] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         include: { profile: true },
@@ -66,16 +66,15 @@ router.get('/:userId', async (req, res, next) => {
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
+      prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_TAILOR } }),
+      prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_COVER_LETTER } }),
+      prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_INTERVIEW_PREP } }),
+      prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_SUMMARY } }),
     ]);
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const aiUsage = {
-      tailor: await prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_TAILOR } }),
-      coverLetter: await prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_COVER_LETTER } }),
-      interviewPrep: await prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_INTERVIEW_PREP } }),
-      summary: await prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_SUMMARY } }),
-    };
+    const aiUsage = { tailor: aiTailor, coverLetter: aiCoverLetter, interviewPrep: aiInterviewPrep, summary: aiSummary };
 
     res.json({ user, resumes, jobs, aiAmendmentCount, aiUsage, activityLog });
   } catch (err) { next(err); }
