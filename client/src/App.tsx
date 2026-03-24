@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { TourProvider } from './context/TourContext';
@@ -14,7 +14,11 @@ import { ResumeDetailPage } from './pages/ResumeDetailPage';
 import { ResumeEditPage } from './pages/ResumeEditPage';
 import { JobTrackerPage } from './pages/JobTrackerPage';
 import { JobDetailPage } from './pages/JobDetailPage';
-import { JobPrepPage } from './pages/JobPrepPage';
+
+function RedirectJobPrep() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/jobs/${id}?tab=prep`} replace />;
+}
 
 const queryClient = new QueryClient();
 
@@ -39,7 +43,7 @@ export default function App() {
                   <Route path="/resumes/:id" element={<ResumeDetailPage />} />
                   <Route path="/jobs" element={<JobTrackerPage />} />
                   <Route path="/jobs/:id" element={<JobDetailPage />} />
-                  <Route path="/jobs/:id/prep" element={<JobPrepPage />} />
+                  <Route path="/jobs/:id/prep" element={<RedirectJobPrep />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
