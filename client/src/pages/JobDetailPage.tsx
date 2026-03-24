@@ -4,7 +4,7 @@ import {
   ArrowLeft, Sparkles, FileText, ExternalLink, Pencil,
   MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye,
 } from 'lucide-react';
-import { getJob, updateJob } from '../api/jobs';
+import { getJob, updateJob, updateStatusHistoryNote } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
 import { JobApplication, JobStatus, FitAnalysis } from '../types';
@@ -36,7 +36,9 @@ export function JobDetailPage() {
   const navigate = useNavigate();
   const { addToast } = useAppStore();
 
-  const activeTab = (searchParams.get('tab') ?? 'info') as TabId;
+  const validTabIds = TABS.map((t) => t.id);
+  const rawTab = searchParams.get('tab') ?? 'info';
+  const activeTab = (validTabIds.includes(rawTab as TabId) ? rawTab : 'info') as TabId;
   const setTab = (tab: TabId) => navigate(`?tab=${tab}`, { replace: true });
 
   const [job, setJob] = useState<JobApplication | null>(null);
@@ -108,14 +110,18 @@ export function JobDetailPage() {
       setNotePromptText('');
       return;
     }
-    const { updateStatusHistoryNote } = await import('../api/jobs');
-    const updated = await updateStatusHistoryNote(job.id, pendingHistoryId, notePromptText.trim());
-    setJob((j) => j ? {
-      ...j,
-      statusHistory: j.statusHistory?.map((e) => e.id === pendingHistoryId ? { ...e, note: updated.note } : e),
-    } : j);
-    setPendingHistoryId(null);
-    setNotePromptText('');
+    try {
+      const updated = await updateStatusHistoryNote(job.id, pendingHistoryId, notePromptText.trim());
+      setJob((j) => j ? {
+        ...j,
+        statusHistory: j.statusHistory?.map((e) => e.id === pendingHistoryId ? { ...e, note: updated.note } : e),
+      } : j);
+    } catch {
+      addToast('Failed to save note', 'error');
+    } finally {
+      setPendingHistoryId(null);
+      setNotePromptText('');
+    }
   };
 
   const handleTailor = async () => {
