@@ -4,7 +4,8 @@ import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings,
 import { Skeleton } from '../components/ui/Skeleton';
 import { getJobs, getJob, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
-import { tailorResume, streamCoverLetter, analyzeFit } from '../api/ai';
+import { tailorResume, streamCoverLetter, analyzeFit, getSampleJobStatus } from '../api/ai';
+import { SampleJobModal } from '../components/jobs/SampleJobModal';
 import { JobApplication, JobStatus } from '../types';
 import { TEMPLATE_OPTIONS } from '../api/templates';
 import { Button } from '../components/ui/Button';
@@ -193,6 +194,9 @@ export function JobTrackerPage() {
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [sampleUsed, setSampleUsed] = useState(0);
+  const [sampleLimit, setSampleLimit] = useState(3);
+  const [sampleOpen, setSampleOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
   const { addToast } = useAppStore();
@@ -219,10 +223,18 @@ export function JobTrackerPage() {
   }, [addOpen, activeTourId, completeTour]);
 
   useEffect(() => {
-    Promise.all([getJobs(), getJobStatuses()])
-      .then(([j, s]) => { setJobs(j); setStatuses(s); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      getJobs(),
+      getJobStatuses(),
+      getSampleJobStatus().catch(() => null),
+    ]).then(([j, s, sample]) => {
+      setJobs(j);
+      setStatuses(s);
+      if (sample) {
+        setSampleUsed(sample.generationsUsed);
+        setSampleLimit(sample.generationsLimit);
+      }
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const statusMap = Object.fromEntries(statuses.map((s) => [s.label, s]));
@@ -330,6 +342,16 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
           <TakeTourButton tourId="jobs-list" />
           <Button variant="secondary" onClick={() => setManageOpen(true)}>
             <Settings size={15} /> <span className="hidden sm:inline">Statuses</span>
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setSampleOpen(true)}
+            disabled={sampleUsed >= sampleLimit}
+            title={sampleUsed >= sampleLimit ? 'Sample job limit reached' : undefined}
+          >
+            <Sparkles size={15} />
+            <span className="hidden sm:inline">Try Sample</span>
+            <span className="text-xs text-gray-400 ml-1">{sampleLimit - sampleUsed}/{sampleLimit}</span>
           </Button>
           <Button onClick={openAdd} data-tour="add-job-btn"><Plus size={16} /> <span className="hidden sm:inline">Add Job</span></Button>
         </div>
@@ -521,6 +543,14 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
         onClose={() => setManageOpen(false)}
         statuses={statuses}
         onSave={setStatuses}
+      />
+
+      {/* Sample Job Modal */}
+      <SampleJobModal
+        open={sampleOpen}
+        onClose={() => setSampleOpen(false)}
+        onCreated={() => setSampleUsed((n) => n + 1)}
+        initialUsed={sampleUsed}
       />
 
       {/* Add Job Modal */}
