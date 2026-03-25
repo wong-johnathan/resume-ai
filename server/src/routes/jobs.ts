@@ -161,12 +161,13 @@ router.get('/:id/output', async (req, res, next) => {
 router.patch('/:id/output', validateBody(patchOutputSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
-    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    const paramId = req.params.id as string;
+    const job = await prisma.jobApplication.findFirst({ where: { id: paramId, userId } });
     if (!job) return res.status(404).json({ error: 'Job not found' });
     const { resumeJson, coverLetterText } = req.body;
     const updated = await prisma.jobOutput.upsert({
-      where: { jobId: req.params.id },
-      create: { jobId: req.params.id, userId, resumeJson, coverLetterText },
+      where: { jobId: paramId },
+      create: { jobId: paramId, userId, resumeJson, coverLetterText },
       update: { resumeJson, coverLetterText },
     });
     res.json(updated);

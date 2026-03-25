@@ -58,8 +58,8 @@ router.get('/:userId', async (req, res, next) => {
         orderBy: { createdAt: 'desc' },
         select: { id: true, company: true, jobTitle: true, status: true, appliedAt: true, createdAt: true },
       }),
-      prisma.aiAmendment.count({
-        where: { jobApplication: { userId } },
+      prisma.activityLog.count({
+        where: { userId, action: { in: [ActivityAction.AI_TAILOR, ActivityAction.AI_COVER_LETTER] } },
       }),
       prisma.activityLog.findMany({
         where: { userId },
@@ -86,7 +86,6 @@ router.get('/:userId/jobs/:jobId', async (req, res, next) => {
     const { userId, jobId } = req.params;
     const job = await prisma.jobApplication.findFirst({
       where: { id: jobId, userId },
-      include: { aiAmendments: { select: { type: true, createdAt: true } } },
     });
     if (!job) return res.status(404).json({ error: 'Job not found' });
     res.json(job);
