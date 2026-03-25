@@ -75,8 +75,8 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
     // Check version limit
     const jobOutput = await prisma.jobOutput.findUnique({ where: { jobId } });
     const currentVersion = jobOutput?.resumeVersion ?? 0;
-    if (currentVersion >= 3) {
-      return res.status(403).json({ error: 'Resume tailor limit of 3 reached for this job.' });
+    if (currentVersion >= 1) {
+      return res.status(403).json({ error: 'Resume tailoring is limited to once per job.' });
     }
 
     // Build profile content
@@ -88,14 +88,14 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
 
     const profileContent = profileToResumeContent(profile);
 
-    // AI call — only need tailored content, not changes
-    const { tailored } = await tailorResume(profileContent, job.description);
+    // AI call — destructure both tailored content and changes
+    const { tailored, changes } = await tailorResume(profileContent, job.description);
 
     // Upsert JobOutput with new resumeJson and increment version
     const updated = await prisma.jobOutput.upsert({
       where: { jobId },
-      create: { jobId, userId, resumeJson: tailored as any, resumeVersion: 1 },
-      update: { resumeJson: tailored as any, resumeVersion: { increment: 1 } },
+      create: { jobId, userId, resumeJson: tailored as any, tailorChanges: changes as any, resumeVersion: 1 },
+      update: { resumeJson: tailored as any, tailorChanges: changes as any, resumeVersion: { increment: 1 } },
     });
 
     logActivity(userId, ActivityAction.AI_TAILOR, { jobId }).catch(() => {});
