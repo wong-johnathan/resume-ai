@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { TailorChanges, BulletChange } from '../../types';
 
@@ -39,10 +39,6 @@ function BulletChangeRow({ change }: { change: BulletChange }) {
 
 export function TailorChangesPanel({ changes, initiallyExpanded, onCollapse }: Props) {
   const [open, setOpen] = useState(initiallyExpanded);
-
-  useEffect(() => {
-    if (initiallyExpanded) setOpen(true);
-  }, [initiallyExpanded]);
 
   const handleToggle = () => {
     if (open) onCollapse();
