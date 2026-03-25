@@ -97,7 +97,7 @@ router.get('/:id/preview', async (req, res) => {
     const userId = (req.user as any).id as string;
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
     });
 
     const isComplete = profile && profile.firstName && profile.lastName && profile.email &&
@@ -120,7 +120,7 @@ router.get('/:id/pdf', requireAuth, async (req, res, next) => {
     const userId = getUser(req).id;
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
     });
     if (!profile) return res.status(404).json({ error: 'Complete your profile first' });
     const html = renderTemplate(templateId, profileToResumeContent(profile));

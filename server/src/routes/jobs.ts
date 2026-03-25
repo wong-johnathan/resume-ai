@@ -187,7 +187,7 @@ router.get('/:id/resume/pdf', async (req, res, next) => {
     } else {
       const profile = await prisma.profile.findUnique({
         where: { userId },
-        include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+        include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
       });
       if (!profile) return res.status(404).json({ error: 'Profile not found' });
       content = profileToResumeContent(profile);
@@ -213,7 +213,7 @@ router.get('/:id/resume/preview', async (req, res, next) => {
     } else {
       const profile = await prisma.profile.findUnique({
         where: { userId },
-        include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+        include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
       });
       if (!profile) return res.status(404).json({ error: 'Profile not found' });
       content = profileToResumeContent(profile);

@@ -33,7 +33,7 @@ router.post('/sample-titles', async (req, res, next) => {
     const userId = getUser(req).id;
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 }, skills: true },
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
@@ -82,7 +82,7 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
     // Build profile content
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
@@ -128,7 +128,7 @@ router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, n
 
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: { take: 8 } },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 }, skills: { take: 8 } },
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
@@ -210,7 +210,7 @@ router.post('/analyze-fit', validateBody(analyzeFitSchema), async (req, res, nex
 
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 }, skills: true },
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
@@ -303,7 +303,7 @@ router.post(
       const profile = await prisma.profile.findFirst({
         where: { userId: user.id },
         include: {
-          experiences: { orderBy: { order: 'asc' }, take: 3 },
+          experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 },
           skills: { take: 10 },
         },
       });
@@ -348,7 +348,7 @@ router.post(
       const profile = await prisma.profile.findFirst({
         where: { userId: user.id },
         include: {
-          experiences: { orderBy: { order: 'asc' }, take: 3 },
+          experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 },
           skills: { take: 10 },
         },
       });
@@ -489,7 +489,7 @@ router.post(
       const profile = await prisma.profile.findFirst({
         where: { userId: user.id },
         include: {
-          experiences: { orderBy: { order: 'asc' }, take: 3 },
+          experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 },
           skills: { take: 10 },
         },
       });
@@ -531,7 +531,7 @@ router.post('/sample-job', validateBody(sampleJobSchema), async (req, res, next)
 
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { experiences: { orderBy: { order: 'asc' }, take: 3 }, skills: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }], take: 3 }, skills: true },
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 

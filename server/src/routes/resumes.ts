@@ -40,7 +40,7 @@ router.post('/', validateBody(createResumeSchema), async (req, res, next) => {
   try {
     const profile = await prisma.profile.findUnique({
       where: { userId: getUser(req).id },
-      include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      include: { experiences: { orderBy: [{ isCurrent: 'desc' }, { startDate: 'desc' }] }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
     });
     if (!profile) return res.status(404).json({ error: 'Complete your profile first' });
 
