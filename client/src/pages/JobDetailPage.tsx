@@ -423,7 +423,11 @@ export function JobDetailPage() {
                   <Button size="sm" onClick={handleTailor} loading={tailoring} disabled={!job.description}>
                     <Sparkles size={13} /> Generate Tailored Resume
                   </Button>
-                  <Button variant="secondary" size="sm" onClick={() => window.open(`/api/jobs/${job.id}/resume/pdf?templateId=minimal`, '_blank')}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => navigate("/templates")}
+                  >
                     <FileText size={13} /> Export from Profile
                   </Button>
                 </div>
