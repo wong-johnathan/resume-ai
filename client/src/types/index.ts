@@ -95,6 +95,41 @@ export interface FitAnalysis {
   summary: string;
 }
 
+export interface SkillChange {
+  type: 'added' | 'removed' | 'reordered' | 'unchanged';
+  name: string;
+  reason: string;
+}
+
+export interface BulletChange {
+  type: 'reworded' | 'added' | 'removed' | 'unchanged' | 'combined';
+  original: string | null;
+  rewritten: string | null;
+  reason: string;
+}
+
+export interface ExperienceChange {
+  index: number;
+  company: string;
+  title: string;
+  sectionSummary: string;
+  bulletChanges: BulletChange[];
+}
+
+export interface TailorChanges {
+  overallSummary: string;
+  summary: {
+    sectionSummary: string;
+    original: string;
+    rewritten: string;
+  };
+  experiences: ExperienceChange[];
+  skills: {
+    sectionSummary: string;
+    skillChanges: SkillChange[];
+  };
+}
+
 export interface JobOutput {
   id: string;
   jobId: string;
@@ -102,6 +137,7 @@ export interface JobOutput {
   coverLetterText: string | null;
   resumeVersion: number;
   coverLetterVersion: number;
+  tailorChanges: TailorChanges | null;
   createdAt: string;
   updatedAt: string;
 }
