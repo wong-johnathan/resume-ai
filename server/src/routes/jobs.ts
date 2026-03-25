@@ -42,7 +42,7 @@ router.get('/', async (req, res, next) => {
     const { status } = req.query;
     const jobs = await prisma.jobApplication.findMany({
       where: { userId: getUser(req).id, ...(status ? { status: status as any } : {}) },
-      include: { resume: { select: { id: true, title: true, templateId: true, tailoredFor: true } } },
+      include: { jobOutput: true },
       orderBy: { updatedAt: 'desc' },
     });
     res.json(jobs);
@@ -163,10 +163,11 @@ router.patch('/:id/output', validateBody(patchOutputSchema), async (req, res, ne
     const userId = getUser(req).id;
     const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
     if (!job) return res.status(404).json({ error: 'Job not found' });
+    const { resumeJson, coverLetterText } = req.body;
     const updated = await prisma.jobOutput.upsert({
       where: { jobId: req.params.id },
-      create: { jobId: req.params.id, userId, ...req.body },
-      update: req.body,
+      create: { jobId: req.params.id, userId, resumeJson, coverLetterText },
+      update: { resumeJson, coverLetterText },
     });
     res.json(updated);
   } catch (err) { next(err); }
