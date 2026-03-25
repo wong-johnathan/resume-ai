@@ -19,7 +19,7 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
   const { addToast } = useAppStore();
   const [saving, setSaving] = useState(false);
 
-  const { register, control, getValues, reset } = useForm<ResumeContent>({
+  const { control, getValues, reset } = useForm<ResumeContent>({
     defaultValues: resumeJson,
   });
 
@@ -41,7 +41,7 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
     try {
       const result = await patchJobOutput(jobId, { resumeJson: getValues() });
       addToast('Changes saved', 'success');
-      if (onSaved && result.resumeJson) {
+      if (onSaved) {
         onSaved(result.resumeJson as ResumeContent);
       }
     } catch {
@@ -183,8 +183,6 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
         </Button>
       </div>
 
-      {/* register kept to suppress unused warning for personalInfo fields if needed */}
-      <input type="hidden" {...register('personalInfo.firstName')} />
     </div>
   );
 }
