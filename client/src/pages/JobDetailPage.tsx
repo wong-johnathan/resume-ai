@@ -453,11 +453,6 @@ export function JobDetailPage() {
                     </Button>
                   </div>
                 </div>
-                <JobOutputEditor
-                  jobId={job.id}
-                  resumeJson={jobOutput.resumeJson}
-                  onSaved={(updated) => setJobOutput((o) => o ? { ...o, resumeJson: updated } : o)}
-                />
                 {jobOutput.tailorChanges && (
                   <TailorChangesPanel
                     changes={jobOutput.tailorChanges}
@@ -465,6 +460,11 @@ export function JobDetailPage() {
                     onCollapse={() => setTailorPanelExpanded(false)}
                   />
                 )}
+                <JobOutputEditor
+                  jobId={job.id}
+                  resumeJson={jobOutput.resumeJson}
+                  onSaved={(updated) => setJobOutput((o) => o ? { ...o, resumeJson: updated } : o)}
+                />
               </div>
             )}
           </div>
