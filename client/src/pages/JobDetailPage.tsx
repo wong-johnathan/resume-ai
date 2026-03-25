@@ -20,6 +20,7 @@ import { InterviewPrepPanel } from '../components/jobs/InterviewPrepPanel';
 import { StatusTimeline } from '../components/jobs/StatusTimeline';
 import { FitScoreDonut } from '../components/jobs/FitScoreDonut';
 import { JobOutputEditor } from '../components/jobs/JobOutputEditor';
+import { TailorChangesPanel } from '../components/jobs/TailorChangesPanel';
 import { ExportModal } from '../components/jobs/ExportModal';
 import { CoverLetterExportModal } from '../components/jobs/CoverLetterExportModal';
 
@@ -58,6 +59,7 @@ export function JobDetailPage() {
   // Resume & Cover Letter tab state
   const [jobOutput, setJobOutput] = useState<JobOutput | null>(null);
   const [tailoring, setTailoring] = useState(false);
+  const [tailorPanelExpanded, setTailorPanelExpanded] = useState(false);
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -136,10 +138,11 @@ export function JobDetailPage() {
     try {
       const updated = await tailorResume(job.id);
       setJobOutput(updated);
+      setTailorPanelExpanded(true);
       addToast('Resume tailored successfully!', 'success');
     } catch (e: any) {
       if (e?.response?.status === 403) {
-        addToast('Tailor limit reached (3/3)', 'error');
+        addToast('Resume tailoring is limited to once per job.', 'error');
       } else {
         addToast(e?.response?.data?.error ?? 'Tailoring failed', 'error');
       }
@@ -409,7 +412,7 @@ export function JobDetailPage() {
               <h2 className="font-semibold text-gray-900 text-sm">Resume</h2>
               {jobOutput?.resumeJson && (
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">Version {jobOutput.resumeVersion} / 3</span>
+                  <span className="text-xs text-gray-400">Version {jobOutput.resumeVersion} / 1</span>
                   <Button variant="secondary" size="sm" onClick={() => setExportModalOpen(true)}>
                     <Download size={13} /> Download
                   </Button>
@@ -438,21 +441,30 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-3">
                 <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handleTailor}
-                    loading={tailoring}
-                    disabled={jobOutput.resumeVersion >= 3}
-                  >
-                    <Sparkles size={13} /> {jobOutput.resumeVersion >= 3 ? 'Tailor limit reached' : 'Re-tailor'}
-                  </Button>
+                  <div title={jobOutput.resumeVersion >= 1 ? 'Each job can only be tailored once' : undefined}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleTailor}
+                      loading={tailoring}
+                      disabled={jobOutput.resumeVersion >= 1}
+                    >
+                      <Sparkles size={13} /> {jobOutput.resumeVersion >= 1 ? 'Tailor limit reached' : 'Re-tailor'}
+                    </Button>
+                  </div>
                 </div>
                 <JobOutputEditor
                   jobId={job.id}
                   resumeJson={jobOutput.resumeJson}
                   onSaved={(updated) => setJobOutput((o) => o ? { ...o, resumeJson: updated } : o)}
                 />
+                {jobOutput.tailorChanges && (
+                  <TailorChangesPanel
+                    changes={jobOutput.tailorChanges}
+                    initiallyExpanded={tailorPanelExpanded}
+                    onCollapse={() => setTailorPanelExpanded(false)}
+                  />
+                )}
               </div>
             )}
           </div>
