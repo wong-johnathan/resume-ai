@@ -182,6 +182,30 @@ function cleanProTemplate(c: ResumeContent): string {
 </body></html>`;
 }
 
+// ─── Cover Letter ─────────────────────────────────────────────────────────────
+
+export function coverLetterTemplate(text: string, profile: { firstName: string; lastName: string; email: string; phone?: string | null; location?: string | null; }): string {
+  const date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const contactParts = [profile.email, profile.phone, profile.location].filter(Boolean);
+  // Replace [date] placeholder in text
+  const body = text.replace(/\[date\]/gi, date);
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Georgia,'Times New Roman',serif;font-size:11pt;color:#222;padding:54px 64px;background:#fff;line-height:1.7;}
+  .name{font-size:16pt;font-weight:bold;margin-bottom:6px;color:#111;}
+  .contact{font-size:9.5pt;color:#555;margin-bottom:28px;}
+  .date{font-size:10pt;color:#555;margin-bottom:32px;}
+  .body{font-size:11pt;white-space:pre-wrap;line-height:1.8;}
+</style>
+</head><body>
+<div class="name">${profile.firstName} ${profile.lastName}</div>
+<div class="contact">${contactParts.join(' · ')}</div>
+<div class="date">${date}</div>
+<div class="body">${body}</div>
+</body></html>`;
+}
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 
 const TEMPLATES: Record<string, (c: ResumeContent) => string> = {
