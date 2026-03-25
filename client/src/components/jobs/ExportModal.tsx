@@ -11,7 +11,7 @@ interface ExportModalProps {
 }
 
 export function ExportModal({ open, onClose, jobId }: ExportModalProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATE_OPTIONS[0]?.value ?? 'minimal');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(TEMPLATE_OPTIONS[0]?.value ?? 'minimal');
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
