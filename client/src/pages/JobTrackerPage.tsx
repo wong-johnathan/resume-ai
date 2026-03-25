@@ -534,7 +534,7 @@ export function JobTrackerPage() {
       <SampleJobModal
         open={sampleOpen}
         onClose={() => setSampleOpen(false)}
-        onCreated={() => setSampleUsed((n) => n + 1)}
+        onCreated={(job) => { setSampleUsed((n) => n + 1); navigate(`/jobs/${job.id}`); }}
         initialUsed={sampleUsed}
       />
 
