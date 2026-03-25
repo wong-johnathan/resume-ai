@@ -1,5 +1,5 @@
 import api from './client';
-import { Resume, FitAnalysis, JobApplication } from '../types';
+import { FitAnalysis, JobApplication, JobOutput } from '../types';
 
 export interface ExtractedJobInfo {
   company: string;
@@ -11,11 +11,11 @@ export interface ExtractedJobInfo {
 export const crawlUrl = (url: string) =>
   api.post<ExtractedJobInfo>('/ai/crawl-url', { url }).then((r) => r.data);
 
-export const analyzeFit = (jobDescription: string, resumeId?: string) =>
-  api.post<FitAnalysis>('/ai/analyze-fit', { jobDescription, resumeId }).then((r) => r.data);
+export const analyzeFit = (jobDescription: string) =>
+  api.post<FitAnalysis>('/ai/analyze-fit', { jobDescription }).then((r) => r.data);
 
-export const tailorResume = (templateId: string, jobDescription: string, jobId?: string) =>
-  api.post<Resume>('/ai/tailor', { templateId, jobDescription, jobId }).then((r) => r.data);
+export const tailorResume = (jobId: string) =>
+  api.post<JobOutput>('/ai/tailor', { jobId }).then((r) => r.data);
 
 export const improveSummary = (currentSummary: string, targetRole: string) =>
   api.post<{ summary: string }>('/ai/improve-summary', { currentSummary, targetRole }).then((r) => r.data);
@@ -29,12 +29,11 @@ export const generateSummary = (
 
 // Cover letter uses SSE streaming — returns an EventSource-like fetch stream
 export function streamCoverLetter(
-  jobDescription: string,
+  jobId: string,
   tone: string,
   onChunk: (text: string) => void,
   onDone: () => void,
-  onError: (err: Error) => void,
-  jobId?: string
+  onError: (err: Error) => void
 ): () => void {
   const controller = new AbortController();
 
@@ -42,7 +41,7 @@ export function streamCoverLetter(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
-    body: JSON.stringify({ jobDescription, tone, ...(jobId ? { jobId } : {}) }),
+    body: JSON.stringify({ jobId, tone }),
     signal: controller.signal,
   }).then(async (res) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

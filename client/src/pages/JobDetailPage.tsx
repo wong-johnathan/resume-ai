@@ -2,26 +2,26 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Sparkles, FileText, ExternalLink, Pencil,
-  MapPin, DollarSign, Copy, History, ChevronDown, ChevronUp, CheckCircle2, AlertTriangle, Eye,
+  MapPin, DollarSign, CheckCircle2, AlertTriangle, Download,
 } from 'lucide-react';
-import { getJob, updateJob, updateStatusHistoryNote } from '../api/jobs';
+import { getJob, updateJob, updateStatusHistoryNote, getJobOutput, patchJobOutput } from '../api/jobs';
 import { getJobStatuses } from '../api/jobStatuses';
 import { streamCoverLetter, tailorResume } from '../api/ai';
-import { JobApplication, JobStatus, FitAnalysis } from '../types';
+import { JobApplication, JobStatus, FitAnalysis, JobOutput } from '../types';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { useAppStore } from '../store/useAppStore';
-import { TEMPLATE_OPTIONS } from '../api/templates';
 import { useTour } from '../hooks/useTour';
 import { TakeTourButton } from '../components/tour/TakeTourButton';
 import { InterviewPrepPanel } from '../components/jobs/InterviewPrepPanel';
 import { StatusTimeline } from '../components/jobs/StatusTimeline';
 import { FitScoreDonut } from '../components/jobs/FitScoreDonut';
-
-const AI_AMENDMENT_LIMIT = 3;
+import { JobOutputEditor } from '../components/jobs/JobOutputEditor';
+import { ExportModal } from '../components/jobs/ExportModal';
+import { CoverLetterExportModal } from '../components/jobs/CoverLetterExportModal';
 
 const TABS = [
   { id: 'info',   label: 'Job Info & Fit' },
@@ -47,24 +47,22 @@ export function JobDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<JobApplication>>({});
   const [editSaving, setEditSaving] = useState(false);
-  const [coverLetterOpen, setCoverLetterOpen] = useState(false);
-  const [coverLetterPreviewOpen, setCoverLetterPreviewOpen] = useState(false);
-  const [coverLetterPreviewText, setCoverLetterPreviewText] = useState<string | null>(null);
-  const [confirmRegenOpen, setConfirmRegenOpen] = useState(false);
-  const [tone, setTone] = useState('Professional');
-  const [coverLetter, setCoverLetter] = useState('');
-  const [streaming, setStreaming] = useState(false);
-  const [tailoring, setTailoring] = useState(false);
-  const [tailorSourceId, setTailorSourceId] = useState('');
   const [notes, setNotes] = useState('');
-  const [historyOpen, setHistoryOpen] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
-  const abortRef = useRef<(() => void) | null>(null);
 
   // Status change note prompt state
   const [pendingHistoryId, setPendingHistoryId] = useState<string | null>(null);
   const [notePromptText, setNotePromptText] = useState('');
   const promptRef = useRef<HTMLDivElement | null>(null);
+
+  // Resume & Cover Letter tab state
+  const [jobOutput, setJobOutput] = useState<JobOutput | null>(null);
+  const [tailoring, setTailoring] = useState(false);
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
+  const [coverLetterTone, setCoverLetterTone] = useState('Professional');
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [coverLetterExportOpen, setCoverLetterExportOpen] = useState(false);
+  const [localCoverLetter, setLocalCoverLetter] = useState('');
 
   useTour('job-detail');
 
@@ -73,12 +71,18 @@ export function JobDetailPage() {
       getJob(id).then((j) => {
         setJob(j);
         setNotes(j.notes ?? '');
-        const t = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        setCoverLetter((j.coverLetter ?? '').replace(/\[date\]/gi, t));
       }).catch(() => {});
       getJobStatuses().then(setStatuses).catch(() => {});
+      getJobOutput(id).then(setJobOutput).catch(() => {});
     }
   }, [id]);
+
+  // Sync localCoverLetter when jobOutput is loaded/updated
+  useEffect(() => {
+    if (jobOutput?.coverLetterText) {
+      setLocalCoverLetter(jobOutput.coverLetterText);
+    }
+  }, [jobOutput?.coverLetterText]);
 
   // Click-outside dismissal for note prompt
   useEffect(() => {
@@ -127,17 +131,57 @@ export function JobDetailPage() {
   };
 
   const handleTailor = async () => {
-    if (!job || !tailorSourceId || !job.description) return;
+    if (!job) return;
     setTailoring(true);
     try {
-      await tailorResume(tailorSourceId, job.description, job.id);
-      const updated = await getJob(job.id);
-      setJob(updated);
-      setTailorSourceId('');
-      addToast('Resume tailored and linked to this job!', 'success');
+      const updated = await tailorResume(job.id);
+      setJobOutput(updated);
+      addToast('Resume tailored successfully!', 'success');
     } catch (e: any) {
-      addToast(e?.response?.data?.error ?? 'Tailoring failed', 'error');
-    } finally { setTailoring(false); }
+      if (e?.response?.status === 403) {
+        addToast('Tailor limit reached (3/3)', 'error');
+      } else {
+        addToast(e?.response?.data?.error ?? 'Tailoring failed', 'error');
+      }
+    } finally {
+      setTailoring(false);
+    }
+  };
+
+  const handleGenerateCoverLetter = () => {
+    if (!job) return;
+    setGeneratingCoverLetter(true);
+    setLocalCoverLetter('');
+    streamCoverLetter(
+      job.id,
+      coverLetterTone,
+      (chunk) => { setLocalCoverLetter((prev) => prev + chunk); },
+      async () => {
+        setGeneratingCoverLetter(false);
+        // Refresh jobOutput from server to get updated coverLetterText and version
+        try {
+          const refreshed = await getJobOutput(job.id);
+          setJobOutput(refreshed);
+          setLocalCoverLetter(refreshed.coverLetterText ?? '');
+        } catch { /* keep local state */ }
+        addToast('Cover letter generated!', 'success');
+      },
+      () => {
+        setGeneratingCoverLetter(false);
+        addToast('Cover letter generation failed', 'error');
+      }
+    );
+  };
+
+  const handleSaveCoverLetter = async () => {
+    if (!job) return;
+    try {
+      const updated = await patchJobOutput(job.id, { coverLetterText: localCoverLetter });
+      setJobOutput(updated);
+      addToast('Cover letter saved', 'success');
+    } catch {
+      addToast('Failed to save cover letter', 'error');
+    }
   };
 
   const handleSaveNotes = async () => {
@@ -178,39 +222,7 @@ export function JobDetailPage() {
     finally { setEditSaving(false); }
   };
 
-  const handleGenerateCoverLetter = () => {
-    if (!job?.description) return addToast('Add a job description first', 'info');
-    setCoverLetter('');
-    setStreaming(true);
-    let generated = '';
-    const abort = streamCoverLetter(
-      job.description,
-      tone,
-      (chunk) => { generated += chunk; setCoverLetter((prev) => prev + chunk); },
-      async () => {
-        setStreaming(false);
-        const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        generated = generated.replace(/\[date\]/gi, today);
-        setCoverLetter(generated);
-        try {
-          await updateJob(job.id, { coverLetter: generated });
-          const refreshed = await getJob(job.id);
-          setJob(refreshed);
-          addToast('Cover letter saved', 'success');
-        } catch { addToast('Failed to save cover letter', 'error'); }
-      },
-      () => { setStreaming(false); addToast('Cover letter generation failed', 'error'); },
-      job.id
-    );
-    abortRef.current = abort;
-  };
-
   if (!job) return <div className="text-center py-20 text-gray-400">Loading…</div>;
-
-  const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  const displayCoverLetter = job.coverLetter?.replace(/\[date\]/gi, today) ?? null;
-  const amendmentCount = job.aiAmendments?.length ?? 0;
-  const amendmentLimitReached = amendmentCount >= AI_AMENDMENT_LIMIT;
 
   return (
     <div className="max-w-3xl">
@@ -390,134 +402,120 @@ export function JobDetailPage() {
 
       {/* Resume & Cover Letter */}
       {activeTab === 'resume' && (
-        <div className="space-y-4">
-          {/* Resume panel */}
+        <div className="space-y-6">
+          {/* Resume Section */}
           <div className="bg-white rounded-xl border shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 text-sm mb-3">Resume</h2>
-
-            {job.resume?.tailoredFor && (
-              <div className="mb-3 flex items-start gap-2 p-2.5 rounded-lg bg-purple-50 border border-purple-100">
-                <Sparkles size={13} className="text-purple-500 mt-0.5 flex-shrink-0" />
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wide">AI Tailored</span>
-                  <p className="text-sm text-gray-800 font-medium truncate">{job.resume.title}</p>
-                  <Link to={`/resumes/${job.resume.id}`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-0.5">
-                    <FileText size={11} /> View resume
-                  </Link>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900 text-sm">Resume</h2>
+              {jobOutput?.resumeJson && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">Version {jobOutput.resumeVersion} / 3</span>
+                  <Button variant="secondary" size="sm" onClick={() => setExportModalOpen(true)}>
+                    <Download size={13} /> Download
+                  </Button>
                 </div>
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-3 border-t">
-              <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                <Sparkles size={10} /> AI amendments
-              </span>
-              <span className={`text-[10px] font-semibold ${amendmentLimitReached ? 'text-red-500' : amendmentCount === AI_AMENDMENT_LIMIT - 1 ? 'text-amber-500' : 'text-gray-500'}`}>
-                {amendmentCount} / {AI_AMENDMENT_LIMIT}
-              </span>
+              )}
             </div>
 
-            {job.description && (
-              <div className="mt-2">
-                {amendmentLimitReached ? (
-                  <p className="text-xs text-red-500 bg-red-50 rounded-lg p-2.5 border border-red-100">
-                    AI amendment limit reached for this job.
-                  </p>
-                ) : (
-                  <>
-                    <Select
-                      label={job.resume?.tailoredFor ? 'Re-tailor using template:' : 'Tailor resume for this job:'}
-                      options={[{ value: '', label: '— Pick a template —' }, ...TEMPLATE_OPTIONS]}
-                      value={tailorSourceId}
-                      onChange={(e) => setTailorSourceId(e.target.value)}
-                    />
-                    <Button size="sm" className="mt-2 w-full" onClick={handleTailor} loading={tailoring} disabled={!tailorSourceId}>
-                      <Sparkles size={13} />
-                      {job.resume?.tailoredFor ? 'Re-tailor with AI' : 'Tailor with AI'}
-                    </Button>
-                    <p className="text-[10px] text-gray-400 mt-1">Creates a tailored copy from your profile data.</p>
-                  </>
+            {!jobOutput?.resumeJson ? (
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleTailor} loading={tailoring} disabled={!job.description}>
+                    <Sparkles size={13} /> Generate Tailored Resume
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => window.open(`/api/jobs/${job.id}/resume/pdf?templateId=minimal`, '_blank')}>
+                    <FileText size={13} /> Export from Profile
+                  </Button>
+                </div>
+                {!job.description && (
+                  <p className="text-xs text-amber-600">Add a job description to enable AI tailoring.</p>
                 )}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleTailor}
+                    loading={tailoring}
+                    disabled={jobOutput.resumeVersion >= 3}
+                  >
+                    <Sparkles size={13} /> {jobOutput.resumeVersion >= 3 ? 'Tailor limit reached' : 'Re-tailor'}
+                  </Button>
+                </div>
+                <JobOutputEditor
+                  jobId={job.id}
+                  resumeJson={jobOutput.resumeJson}
+                  onSaved={(updated) => setJobOutput((o) => o ? { ...o, resumeJson: updated } : o)}
+                />
               </div>
             )}
           </div>
 
-          {/* Amendment history */}
-          {(job.aiAmendments?.length ?? 0) > 0 && (
-            <div className="bg-white rounded-xl border shadow-sm p-5">
-              <button
-                className="flex items-center justify-between w-full text-left"
-                onClick={() => setHistoryOpen((o) => !o)}
-              >
-                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                  <History size={14} className="text-gray-400" /> AI Amendment History
-                  <span className="ml-1 text-[10px] font-normal text-gray-400">({job.aiAmendments!.length}/{AI_AMENDMENT_LIMIT})</span>
-                </h2>
-                {historyOpen ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
-              </button>
-              {historyOpen && (
-                <div className="mt-3 space-y-2">
-                  {job.aiAmendments!.map((amendment, i) => (
-                    <div key={amendment.id} className="rounded-lg border bg-gray-50 p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide ${amendment.type === 'RESUME_TAILOR' ? 'text-purple-600' : 'text-blue-600'}`}>
-                          <Sparkles size={10} />
-                          {amendment.type === 'RESUME_TAILOR' ? 'Resume Tailored' : 'Cover Letter'}
-                          <span className="ml-1 font-normal text-gray-400">#{job.aiAmendments!.length - i}</span>
-                        </span>
-                        <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                          {new Date(amendment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </span>
-                      </div>
-                      {amendment.type === 'RESUME_TAILOR' && amendment.resumeId && (
-                        <Link to={`/resumes/${amendment.resumeId}`} className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline">
-                          <FileText size={11} /> View tailored resume
-                        </Link>
-                      )}
-                      {amendment.type === 'COVER_LETTER' && amendment.coverLetterText && (
-                        <button
-                          className="text-xs text-blue-600 hover:underline"
-                          onClick={() => { setCoverLetterPreviewText((amendment.coverLetterText ?? '').replace(/\[date\]/gi, today)); setCoverLetterPreviewOpen(true); }}
-                        >
-                          View cover letter
-                        </button>
-                      )}
-                    </div>
-                  ))}
+          {/* Cover Letter Section */}
+          <div className="bg-white rounded-xl border shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-gray-900 text-sm">Cover Letter</h2>
+              {jobOutput?.coverLetterText && (
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-400">Version {jobOutput.coverLetterVersion} / 3</span>
+                  <Button variant="secondary" size="sm" onClick={() => setCoverLetterExportOpen(true)}>
+                    <Download size={13} /> Download
+                  </Button>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Cover letter */}
-          <div className="bg-white rounded-xl border shadow-sm p-5">
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <h2 className="font-semibold text-gray-900 text-sm shrink-0">Cover Letter</h2>
-              <div className="flex items-center gap-2 flex-wrap justify-end">
-                {displayCoverLetter && (
-                  <>
-                    <button title="Preview" onClick={() => { setCoverLetterPreviewText(displayCoverLetter); setCoverLetterPreviewOpen(true); }} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700">
-                      <Eye size={14} />
-                    </button>
-                    <button title="Copy" onClick={() => { navigator.clipboard.writeText(displayCoverLetter); addToast('Cover letter copied!', 'success'); }} className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 hover:text-gray-700">
-                      <Copy size={14} />
-                    </button>
-                    <Button variant="secondary" size="sm" onClick={() => setConfirmRegenOpen(true)} disabled={amendmentLimitReached} loading={streaming}>
-                      <Sparkles size={14} /> Regenerate
-                    </Button>
-                  </>
+            {!jobOutput?.coverLetterText ? (
+              <div className="space-y-3">
+                <Select
+                  label="Tone"
+                  options={['Professional', 'Conversational', 'Enthusiastic'].map((t) => ({ value: t, label: t }))}
+                  value={coverLetterTone}
+                  onChange={(e) => setCoverLetterTone(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleGenerateCoverLetter}
+                  loading={generatingCoverLetter}
+                  disabled={!job.description}
+                >
+                  <Sparkles size={13} /> Generate Cover Letter
+                </Button>
+                {generatingCoverLetter && localCoverLetter && (
+                  <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                    {localCoverLetter}
+                  </pre>
                 )}
-                {!displayCoverLetter && (
-                  <Button variant="secondary" size="sm" onClick={() => setCoverLetterOpen(true)} disabled={amendmentLimitReached}>
-                    <Sparkles size={14} /> Generate
-                  </Button>
+                {!job.description && (
+                  <p className="text-xs text-amber-600">Add a job description to generate a cover letter.</p>
                 )}
               </div>
-            </div>
-            {displayCoverLetter ? (
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">{displayCoverLetter}</pre>
             ) : (
-              <p className="text-xs text-gray-400">No cover letter yet. Generate one with AI or write your own.</p>
+              <div className="space-y-3">
+                <Textarea
+                  rows={10}
+                  value={localCoverLetter}
+                  onChange={(e) => setLocalCoverLetter(e.target.value)}
+                />
+                <div className="flex items-center justify-between">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setLocalCoverLetter('');
+                      setJobOutput((o) => o ? { ...o, coverLetterText: null } : o);
+                    }}
+                    disabled={jobOutput.coverLetterVersion >= 3}
+                  >
+                    <Sparkles size={13} /> {jobOutput.coverLetterVersion >= 3 ? 'Regen limit reached' : 'Regenerate'}
+                  </Button>
+                  <Button size="sm" onClick={handleSaveCoverLetter}>
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -568,50 +566,8 @@ export function JobDetailPage() {
         </div>
       </Modal>
 
-      <Modal open={coverLetterPreviewOpen} onClose={() => setCoverLetterPreviewOpen(false)} title="Cover Letter Preview" size="xl">
-        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed max-h-[70vh] overflow-y-auto">{coverLetterPreviewText}</pre>
-        <div className="flex justify-end gap-3 mt-4">
-          <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(coverLetterPreviewText!); addToast('Cover letter copied!', 'success'); }}>
-            <Copy size={14} /> Copy
-          </Button>
-          <Button variant="secondary" onClick={() => setCoverLetterPreviewOpen(false)}>Close</Button>
-        </div>
-      </Modal>
-
-      <Modal open={confirmRegenOpen} onClose={() => setConfirmRegenOpen(false)} title="Regenerate Cover Letter">
-        <p className="text-sm text-gray-600 mb-5">This will replace your current cover letter. Are you sure?</p>
-        <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={() => setConfirmRegenOpen(false)}>Cancel</Button>
-          <Button onClick={() => { setConfirmRegenOpen(false); handleGenerateCoverLetter(); }}>
-            <Sparkles size={14} /> Regenerate
-          </Button>
-        </div>
-      </Modal>
-
-      <Modal open={coverLetterOpen} onClose={() => { abortRef.current?.(); setCoverLetterOpen(false); }} title="Cover Letter" size="xl">
-        <div className="space-y-4">
-          <Select
-            label="Tone"
-            options={['Professional', 'Conversational', 'Enthusiastic'].map((t) => ({ value: t, label: t }))}
-            value={tone}
-            onChange={(e) => setTone(e.target.value)}
-          />
-          <Button onClick={handleGenerateCoverLetter} loading={streaming} disabled={!job.description || amendmentLimitReached}>
-            <Sparkles size={16} /> {coverLetter ? 'Regenerate' : 'Generate'} with AI
-          </Button>
-          {amendmentLimitReached && <p className="text-xs text-red-500">AI amendment limit reached for this job.</p>}
-          <Textarea label="Cover Letter" value={coverLetter} onChange={(e) => setCoverLetter(e.target.value)} rows={20} placeholder="Write or generate a cover letter…" />
-          <div className="flex justify-end gap-3">
-            <Button variant="secondary" onClick={() => setCoverLetterOpen(false)}>Cancel</Button>
-            <Button onClick={async () => {
-              const updated = await updateJob(job.id, { coverLetter: coverLetter || null });
-              setJob(updated);
-              setCoverLetterOpen(false);
-              addToast('Cover letter saved', 'success');
-            }} disabled={streaming}>Save</Button>
-          </div>
-        </div>
-      </Modal>
+      <ExportModal open={exportModalOpen} onClose={() => setExportModalOpen(false)} jobId={job.id} />
+      <CoverLetterExportModal open={coverLetterExportOpen} onClose={() => setCoverLetterExportOpen(false)} jobId={job.id} />
     </div>
   );
 }

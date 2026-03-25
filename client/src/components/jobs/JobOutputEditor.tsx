@@ -1,46 +1,27 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { ArrowLeft, Plus, Trash2, Pencil, Download, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { getResume, updateResume, renderResumePreview, getPdfUrl } from '../api/resumes';
-import { Resume } from '../types';
-import type { ResumeContent, ResumeExperience, ResumeEducation, ResumeCertification } from '../types/resumeContent';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Modal } from '../components/ui/Modal';
-import { RichTextEditor } from '../components/ui/RichTextEditor';
-import { useAppStore } from '../store/useAppStore';
+import { Save, Plus, Trash2, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
+import { patchJobOutput } from '../../api/jobs';
+import { useAppStore } from '../../store/useAppStore';
+import type { ResumeContent, ResumeExperience, ResumeEducation, ResumeCertification } from '../../types/resumeContent';
+import { Button } from '../ui/Button';
+import { Input } from '../ui/Input';
+import { Modal } from '../ui/Modal';
+import { RichTextEditor } from '../ui/RichTextEditor';
 
-export function ResumeEditPage() {
-  const { id } = useParams<{ id: string }>();
+interface Props {
+  jobId: string;
+  resumeJson: ResumeContent;
+  onSaved?: (updated: ResumeContent) => void;
+}
+
+export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
   const { addToast } = useAppStore();
-  const [resume, setResume] = useState<Resume | null>(null);
-  const [previewHtml, setPreviewHtml] = useState('');
   const [saving, setSaving] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const [previewScale, setPreviewScale] = useState(() =>
-    window.innerWidth < 768 ? Math.min(1, (window.innerWidth - 16) / 794) : 1
-  );
-  useEffect(() => {
-    const update = () =>
-      setPreviewScale(window.innerWidth < 768 ? Math.min(1, (window.innerWidth - 16) / 794) : 1);
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
-
-  const adjustIframeHeight = useCallback(() => {
-    try {
-      const doc = iframeRef.current?.contentDocument;
-      if (doc && iframeRef.current) {
-        iframeRef.current.style.height = doc.documentElement.scrollHeight + 'px';
-      }
-    } catch {}
-  }, []);
-
-  const { register, control, watch, getValues, reset } = useForm<ResumeContent>();
+  const { control, getValues, reset } = useForm<ResumeContent>({
+    defaultValues: resumeJson,
+  });
 
   const { fields: expFields, append: appendExp, update: updateExp, remove: removeExp } =
     useFieldArray({ control, name: 'experiences', keyName: 'fieldId' as any });
@@ -52,52 +33,17 @@ export function ResumeEditPage() {
     useFieldArray({ control, name: 'certifications', keyName: 'fieldId' as any });
 
   useEffect(() => {
-    if (!id) return;
-    getResume(id)
-      .then(async (r) => {
-        setResume(r);
-        reset(r.contentJson as ResumeContent);
-        try {
-          const html = await renderResumePreview(r.id, r.contentJson as ResumeContent);
-          setPreviewHtml(html);
-        } catch {}
-      })
-      .catch(() => {});
-  }, [id, reset]);
-
-  // Resize iframe whenever preview HTML updates
-  useEffect(() => {
-    if (previewHtml) {
-      // Allow the browser to parse and render the new srcdoc before measuring
-      const t = setTimeout(adjustIframeHeight, 100);
-      return () => clearTimeout(t);
-    }
-  }, [previewHtml, adjustIframeHeight]);
-
-  // Live preview via debounced watch subscription
-  useEffect(() => {
-    const { unsubscribe } = watch((value) => {
-      clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(async () => {
-        if (!id) return;
-        try {
-          const html = await renderResumePreview(id, value as ResumeContent);
-          setPreviewHtml(html);
-        } catch {}
-      }, 800);
-    });
-    return () => {
-      unsubscribe();
-      clearTimeout(debounceRef.current);
-    };
-  }, [watch, id]);
+    reset(resumeJson);
+  }, [resumeJson, reset]);
 
   const handleSave = async () => {
-    if (!resume) return;
     setSaving(true);
     try {
-      await updateResume(resume.id, { contentJson: getValues() as any });
-      addToast('Resume saved!', 'success');
+      const result = await patchJobOutput(jobId, { resumeJson: getValues() });
+      addToast('Changes saved', 'success');
+      if (onSaved) {
+        onSaved(result.resumeJson as ResumeContent);
+      }
     } catch {
       addToast('Failed to save', 'error');
     } finally {
@@ -105,228 +51,138 @@ export function ResumeEditPage() {
     }
   };
 
-  if (!resume) return <div className="flex items-center justify-center h-64 text-gray-400">Loading…</div>;
-
   return (
-    <div className="flex flex-col h-full -m-6">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-6 py-4 bg-white border-b shadow-sm flex-shrink-0">
-        <Link to={`/resumes/${resume.id}`} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-          <ArrowLeft size={20} />
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-semibold text-gray-900 truncate">{resume.title}</h1>
+    <div className="space-y-3">
+      {/* Summary */}
+      <EditSection title="Summary">
+        <Controller
+          name="summary"
+          control={control}
+          render={({ field }) => (
+            <RichTextEditor value={field.value ?? ''} onChange={field.onChange} />
+          )}
+        />
+      </EditSection>
+
+      {/* Experience */}
+      <EditSection title="Experience">
+        <div className="space-y-2">
+          {expFields.map((exp, index) => (
+            <ExpItem
+              key={(exp as any).fieldId}
+              exp={exp as unknown as ResumeExperience}
+              onUpdate={(data) => updateExp(index, data)}
+              onDelete={() => removeExp(index)}
+            />
+          ))}
         </div>
-        <a href={getPdfUrl(resume.id)} download={`${resume.title}.pdf`}>
-          <Button variant="secondary" size="sm">
-            <Download size={14} /> <span className="hidden sm:inline">Download PDF</span>
-          </Button>
-        </a>
-        <Button onClick={handleSave} loading={saving} size="sm">
-          <Save size={14} /> <span className="hidden sm:inline">Save</span>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-2"
+          onClick={() =>
+            appendExp({
+              company: '',
+              title: '',
+              location: null,
+              startDate: new Date().toISOString().slice(0, 10),
+              endDate: null,
+              isCurrent: false,
+              description: '',
+              order: expFields.length,
+            })
+          }
+        >
+          <Plus size={14} /> Add Experience
+        </Button>
+      </EditSection>
+
+      {/* Education */}
+      <EditSection title="Education">
+        <div className="space-y-2">
+          {eduFields.map((edu, index) => (
+            <EduItem
+              key={(edu as any).fieldId}
+              edu={edu as unknown as ResumeEducation}
+              onUpdate={(data) => updateEdu(index, data)}
+              onDelete={() => removeEdu(index)}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-2"
+          onClick={() =>
+            appendEdu({
+              institution: '',
+              degree: '',
+              fieldOfStudy: null,
+              startDate: new Date().toISOString().slice(0, 10),
+              endDate: null,
+              gpa: null,
+              order: eduFields.length,
+            })
+          }
+        >
+          <Plus size={14} /> Add Education
+        </Button>
+      </EditSection>
+
+      {/* Skills */}
+      <EditSection title="Skills">
+        <div className="flex flex-wrap gap-2 mb-3">
+          {skillFields.map((skill, index) => (
+            <div
+              key={(skill as any).fieldId}
+              className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
+            >
+              {(skill as any).name}
+              <button
+                type="button"
+                onClick={() => removeSkill(index)}
+                className="hover:text-red-500"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <SkillAdder onAdd={(name) => appendSkill({ name, level: 'INTERMEDIATE', category: null })} />
+      </EditSection>
+
+      {/* Certifications */}
+      <EditSection title="Certifications">
+        <div className="space-y-2">
+          {certFields.map((cert, index) => (
+            <CertItem
+              key={(cert as any).fieldId}
+              cert={cert as unknown as ResumeCertification}
+              onUpdate={(data) => updateCert(index, data)}
+              onDelete={() => removeCert(index)}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-2"
+          onClick={() => appendCert({ name: '', issuer: '', issueDate: null, credentialUrl: null })}
+        >
+          <Plus size={14} /> Add Certification
+        </Button>
+      </EditSection>
+
+      {/* Save button */}
+      <div className="flex justify-end pt-2">
+        <Button onClick={handleSave} loading={saving}>
+          <Save size={14} /> Save Changes
         </Button>
       </div>
 
-      {/* Mobile tab bar */}
-      <div className="md:hidden flex border-b bg-white flex-shrink-0">
-        <button
-          onClick={() => setMobileTab('edit')}
-          className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            mobileTab === 'edit' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
-          }`}
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => setMobileTab('preview')}
-          className={`flex-1 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-            mobileTab === 'preview' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'
-          }`}
-        >
-          Preview
-        </button>
-      </div>
-
-      {/* Split pane */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Edit pane */}
-        <div className={`${mobileTab === 'edit' ? 'block' : 'hidden'} md:block w-full md:w-[42%] overflow-y-auto border-r bg-gray-50 p-4 space-y-3 flex-shrink-0`}>
-          {/* Personal Info */}
-          <EditSection title="Personal Info">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Input label="First Name" {...register('personalInfo.firstName')} />
-              <Input label="Last Name" {...register('personalInfo.lastName')} />
-              <Input label="Email" type="email" {...register('personalInfo.email')} />
-              <Input label="Phone" {...register('personalInfo.phone')} />
-              <div className="sm:col-span-2">
-                <Input label="Location" placeholder="City, State" {...register('personalInfo.location')} />
-              </div>
-              <Input label="LinkedIn URL" {...register('personalInfo.linkedinUrl')} />
-              <Input label="GitHub URL" {...register('personalInfo.githubUrl')} />
-              <div className="sm:col-span-2">
-                <Input label="Portfolio URL" {...register('personalInfo.portfolioUrl')} />
-              </div>
-            </div>
-          </EditSection>
-
-          {/* Summary */}
-          <EditSection title="Summary">
-            <Controller
-              name="summary"
-              control={control}
-              render={({ field }) => (
-                <RichTextEditor value={field.value ?? ''} onChange={field.onChange} />
-              )}
-            />
-          </EditSection>
-
-          {/* Experience */}
-          <EditSection title="Experience">
-            <div className="space-y-2">
-              {expFields.map((exp, index) => (
-                <ExpItem
-                  key={(exp as any).fieldId}
-                  exp={exp as unknown as ResumeExperience}
-                  onUpdate={(data) => updateExp(index, data)}
-                  onDelete={() => removeExp(index)}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="mt-2"
-              onClick={() =>
-                appendExp({
-                  company: '',
-                  title: '',
-                  location: null,
-                  startDate: new Date().toISOString().slice(0, 10),
-                  endDate: null,
-                  isCurrent: false,
-                  description: '',
-                  order: expFields.length,
-                })
-              }
-            >
-              <Plus size={14} /> Add Experience
-            </Button>
-          </EditSection>
-
-          {/* Education */}
-          <EditSection title="Education">
-            <div className="space-y-2">
-              {eduFields.map((edu, index) => (
-                <EduItem
-                  key={(edu as any).fieldId}
-                  edu={edu as unknown as ResumeEducation}
-                  onUpdate={(data) => updateEdu(index, data)}
-                  onDelete={() => removeEdu(index)}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="mt-2"
-              onClick={() =>
-                appendEdu({
-                  institution: '',
-                  degree: '',
-                  fieldOfStudy: null,
-                  startDate: new Date().toISOString().slice(0, 10),
-                  endDate: null,
-                  gpa: null,
-                  order: eduFields.length,
-                })
-              }
-            >
-              <Plus size={14} /> Add Education
-            </Button>
-          </EditSection>
-
-          {/* Skills */}
-          <EditSection title="Skills">
-            <div className="flex flex-wrap gap-2 mb-3">
-              {skillFields.map((skill, index) => (
-                <div
-                  key={(skill as any).fieldId}
-                  className="flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm"
-                >
-                  {(skill as any).name}
-                  <button
-                    type="button"
-                    onClick={() => removeSkill(index)}
-                    className="hover:text-red-500"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <SkillAdder onAdd={(name) => appendSkill({ name, level: 'INTERMEDIATE', category: null })} />
-          </EditSection>
-
-          {/* Certifications */}
-          <EditSection title="Certifications">
-            <div className="space-y-2">
-              {certFields.map((cert, index) => (
-                <CertItem
-                  key={(cert as any).fieldId}
-                  cert={cert as unknown as ResumeCertification}
-                  onUpdate={(data) => updateCert(index, data)}
-                  onDelete={() => removeCert(index)}
-                />
-              ))}
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="mt-2"
-              onClick={() => appendCert({ name: '', issuer: '', issueDate: null, credentialUrl: null })}
-            >
-              <Plus size={14} /> Add Certification
-            </Button>
-          </EditSection>
-        </div>
-
-        {/* Preview pane */}
-        <div className={`${mobileTab === 'preview' ? 'flex' : 'hidden'} md:flex flex-1 bg-gray-100 overflow-auto`}>
-          {previewHtml ? (
-            <div
-              style={previewScale < 1 ? {
-                width: `${794 * previewScale}px`,
-                height: `${1122 * previewScale}px`,
-                overflow: 'hidden',
-                flexShrink: 0,
-              } : { width: '100%' }}
-            >
-              <iframe
-                ref={iframeRef}
-                srcDoc={previewHtml}
-                title="Resume Preview"
-                className={previewScale >= 1 ? 'w-full border-none block' : 'border-none block'}
-                style={previewScale < 1 ? {
-                  width: '794px',
-                  height: '1122px',
-                  background: '#fff',
-                  transform: `scale(${previewScale})`,
-                  transformOrigin: 'top left',
-                } : { minHeight: '1122px', background: '#fff' }}
-                sandbox="allow-same-origin"
-                onLoad={adjustIframeHeight}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 text-sm w-full">
-              Loading preview…
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

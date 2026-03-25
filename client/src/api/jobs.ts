@@ -1,5 +1,5 @@
 import api from './client';
-import { JobApplication, ApplicationStatus, JobStatusHistory } from '../types';
+import { JobApplication, ApplicationStatus, JobStatusHistory, JobOutput } from '../types';
 
 export const getJobs = (status?: ApplicationStatus) =>
   api.get<JobApplication[]>('/jobs', { params: status ? { status } : {} }).then((r) => r.data);
@@ -11,4 +11,7 @@ export const updateStatusHistoryNote = (jobId: string, historyId: string, note: 
   api.patch<JobStatusHistory>(`/jobs/${jobId}/status-history/${historyId}`, { note }).then((r) => r.data);
 export const deleteStatusHistoryEntry = (jobId: string, historyId: string) =>
   api.delete(`/jobs/${jobId}/status-history/${historyId}`);
-export const linkResume = (jobId: string, resumeId: string | null) => api.put(`/jobs/${jobId}/resume`, { resumeId });
+export const getJobOutput = (jobId: string) =>
+  api.get<JobOutput>(`/jobs/${jobId}/output`).then((r) => r.data);
+export const patchJobOutput = (jobId: string, data: Partial<Pick<JobOutput, 'resumeJson' | 'coverLetterText'>>) =>
+  api.patch<JobOutput>(`/jobs/${jobId}/output`, data).then((r) => r.data);

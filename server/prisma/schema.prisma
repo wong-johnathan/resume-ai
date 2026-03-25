@@ -26,6 +26,7 @@ model User {
   jobApplications JobApplication[]
   jobStatuses     UserJobStatus[]
   interviewPreps  InterviewPrep[]
+  jobOutputs      JobOutput[]
 
   @@unique([provider, providerId])
 }
@@ -127,8 +128,6 @@ model Resume {
   tailorSourceSnapshot Json?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
-
-  jobApplications JobApplication[]
 }
 
 enum ResumeStatus {
@@ -150,34 +149,33 @@ model JobApplication {
   status            String    @default("SAVED")
   statusUpdatedAt   DateTime?
   appliedAt         DateTime?
-  resumeId    String?
-  resume      Resume?   @relation(fields: [resumeId], references: [id])
   notes       String?   @db.Text
-  coverLetter String?   @db.Text
   salary      String?
   location    String?
   fitAnalysis Json?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  aiAmendments  AiAmendment[]
+  jobOutput     JobOutput?
   interviewPrep InterviewPrep?
   statusHistory JobStatusHistory[]
 }
 
-model AiAmendment {
-  id               String          @id @default(cuid())
-  jobApplicationId String
-  jobApplication   JobApplication  @relation(fields: [jobApplicationId], references: [id], onDelete: Cascade)
-  type             AiAmendmentType
-  resumeId         String?
-  coverLetterText  String?         @db.Text
-  createdAt        DateTime        @default(now())
-}
+model JobOutput {
+  id                   String   @id @default(cuid())
+  jobId                String   @unique
+  userId               String
+  resumeJson           Json?
+  coverLetterText      String?  @db.Text
+  resumeVersion        Int      @default(0)
+  coverLetterVersion   Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-enum AiAmendmentType {
-  RESUME_TAILOR
-  COVER_LETTER
+  job  JobApplication @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model JobStatusHistory {
@@ -246,8 +244,6 @@ model ActivityLog {
 enum ActivityAction {
   LOGIN
   LOGOUT
-  RESUME_CREATED
-  RESUME_DELETED
   RESUME_ARCHIVED
   JOB_CREATED
   JOB_DELETED

@@ -67,39 +67,6 @@ export interface Profile {
 import type { ResumeContent } from './resumeContent';
 export type { ResumeContent };
 
-export interface BulletChange {
-  type: 'reworded' | 'added' | 'removed' | 'unchanged';
-  original: string | null;
-  rewritten: string | null;
-  reason: string;
-}
-
-export interface ExperienceChange {
-  index: number;
-  company: string;
-  title: string;
-  sectionSummary: string;
-  bulletChanges: BulletChange[];
-}
-
-export interface TailorChanges {
-  overallSummary: string;
-  summary: {
-    sectionSummary: string;
-    original: string;
-    rewritten: string;
-  };
-  experiences: ExperienceChange[];
-  skills: {
-    sectionSummary: string;
-    skillChanges: Array<{
-      type: 'added' | 'removed' | 'reordered' | 'unchanged';
-      name: string;
-      reason: string;
-    }>;
-  };
-}
-
 export interface Resume {
   id: string;
   userId: string;
@@ -107,10 +74,6 @@ export interface Resume {
   templateId: string;
   status: 'DRAFT' | 'FINAL' | 'ARCHIVED';
   contentJson: ResumeContent;
-  tailoredFor?: string | null;
-  coverLetter?: string | null;
-  tailorChanges?: TailorChanges | null;
-  tailorSourceSnapshot?: ResumeContent | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,13 +95,15 @@ export interface FitAnalysis {
   summary: string;
 }
 
-export interface AiAmendment {
+export interface JobOutput {
   id: string;
-  jobApplicationId: string;
-  type: 'RESUME_TAILOR' | 'COVER_LETTER';
-  resumeId?: string | null;
-  coverLetterText?: string | null;
+  jobId: string;
+  resumeJson: ResumeContent | null;
+  coverLetterText: string | null;
+  resumeVersion: number;
+  coverLetterVersion: number;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface JobStatusHistory {
@@ -160,16 +125,13 @@ export interface JobApplication {
   status: ApplicationStatus;
   statusUpdatedAt?: string | null;
   appliedAt?: string | null;
-  resumeId?: string | null;
-  resume?: Pick<Resume, 'id' | 'title' | 'templateId' | 'tailoredFor'> | null;
   notes?: string | null;
-  coverLetter?: string | null;
   salary?: string | null;
   location?: string | null;
   fitAnalysis?: FitAnalysis | null;
   createdAt: string;
   updatedAt: string;
-  aiAmendments?: AiAmendment[];
+  jobOutput?: JobOutput | null;
   statusHistory?: JobStatusHistory[];
 }
 

@@ -2,12 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, FileText, ChevronRight, ChevronLeft, Loader2, Settings, Trash2, GripVertical, X, ExternalLink, Info } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
-import { getJobs, getJob, createJob, updateJob, deleteJob } from '../api/jobs';
+import { getJobs, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
 import { tailorResume, streamCoverLetter, analyzeFit, getSampleJobStatus } from '../api/ai';
 import { SampleJobModal } from '../components/jobs/SampleJobModal';
 import { JobApplication, JobStatus } from '../types';
-import { TEMPLATE_OPTIONS } from '../api/templates';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -28,7 +27,7 @@ type JobDetailsForm = {
   location?: string;
 };
 
-const STEPS = ['Job Details', 'Resume', 'AI Enhancement'] as const;
+const STEPS = ['Job Details', 'AI Enhancement'] as const;
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -205,7 +204,6 @@ export function JobTrackerPage() {
   const [step, setStep] = useState(0);
   const { register, handleSubmit, reset, watch, setValue } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
   const [jobDetails, setJobDetails] = useState<JobDetailsForm | null>(null);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [aiTailor, setAiTailor] = useState(false);
   const [aiCoverLetter, setAiCoverLetter] = useState(false);
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
@@ -243,7 +241,6 @@ export function JobTrackerPage() {
     setStep(0);
     reset({ status: statuses[0]?.label ?? 'SAVED' });
     setJobDetails(null);
-    setSelectedTemplateId('');
     setAiTailor(false);
     setAiCoverLetter(false);
     setCoverLetterTone('Professional');
@@ -256,12 +253,11 @@ export function JobTrackerPage() {
     setStep(1);
   };
 
-const streamToString = (jobDescription: string, tone: string): Promise<string> =>
+  const streamToString = (jobId: string, tone: string): Promise<string> =>
     new Promise((resolve, reject) => {
       let text = '';
-      const abort = streamCoverLetter(jobDescription, tone, (chunk) => { text += chunk; }, () => {
-        const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-        resolve(text.replace(/\[date\]/gi, today));
+      const abort = streamCoverLetter(jobId, tone, (chunk) => { text += chunk; }, () => {
+        resolve(text);
       }, reject);
       abortRef.current = abort;
     });
@@ -269,45 +265,51 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
   const onSave = async (useAi: boolean) => {
     if (!jobDetails) return;
     setProcessing(true);
+    let job: any;
     try {
       setProcessingLabel('Creating job application…');
-      const job = await createJob({ ...jobDetails } as any);
-
-      const hasDescription = (jobDetails.description?.trim().length ?? 0) >= 50;
-
-      if (useAi && aiTailor && selectedTemplateId && hasDescription) {
-        setProcessingLabel('Tailoring resume with AI…');
-        await tailorResume(selectedTemplateId, jobDetails.description!, job.id);
-        const refreshed = await getJob(job.id);
-        Object.assign(job, refreshed);
-      }
-
-      if (useAi && aiCoverLetter && hasDescription) {
-        setProcessingLabel('Generating cover letter with AI…');
-        const generated = await streamToString(jobDetails.description!, coverLetterTone);
-        if (generated.trim()) {
-          await updateJob(job.id, { coverLetter: generated } as any);
-          job.coverLetter = generated;
-        }
-      }
-
-      if (hasDescription) {
-        setProcessingLabel('Analysing your fit…');
-        try {
-          const fit = await analyzeFit(jobDetails.description!);
-          await updateJob(job.id, { fitAnalysis: fit } as any);
-        } catch {
-          // non-fatal — job is already created, proceed to detail page
-        }
-      }
-
-      navigate(`/jobs/${job.id}`);
+      job = await createJob({ ...jobDetails } as any);
     } catch (e: any) {
       addToast(e?.response?.data?.error ?? 'Something went wrong', 'error');
-    } finally {
       setProcessing(false);
       setProcessingLabel('');
+      return;
     }
+
+    const hasDescription = (jobDetails.description?.trim().length ?? 0) >= 50;
+
+    if (useAi && aiTailor && hasDescription) {
+      setProcessingLabel('Tailoring resume with AI…');
+      try {
+        await tailorResume(job.id);
+      } catch (e: any) {
+        addToast(e?.response?.data?.error ?? 'AI tailoring failed — you can retry from the job page.', 'error');
+      }
+    }
+
+    if (useAi && aiCoverLetter && hasDescription) {
+      setProcessingLabel('Generating cover letter with AI…');
+      try {
+        await streamToString(job.id, coverLetterTone);
+        // Cover letter is saved server-side — no need to updateJob
+      } catch (e: any) {
+        addToast(e?.response?.data?.error ?? 'Cover letter generation failed — you can retry from the job page.', 'error');
+      }
+    }
+
+    if (hasDescription) {
+      setProcessingLabel('Analysing your fit…');
+      try {
+        const fit = await analyzeFit(jobDetails.description!);
+        await updateJob(job.id, { fitAnalysis: fit } as any);
+      } catch {
+        // non-fatal — job is already created, proceed to detail page
+      }
+    }
+
+    setProcessing(false);
+    setProcessingLabel('');
+    navigate(`/jobs/${job.id}`);
   };
 
   const handleStatusChange = async (job: JobApplication, newStatus: string) => {
@@ -472,24 +474,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                       <span className="text-xs text-gray-500">{job.location ?? '—'}</span>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <div className="flex items-center gap-2">
-                        {job.resumeId && (
-                          <span className="text-xs text-blue-500 flex items-center gap-0.5">
-                            <FileText size={11} /> Resume
-                          </span>
-                        )}
-                        {job.coverLetter && (
-                          <span className="text-xs text-purple-500 flex items-center gap-0.5 whitespace-nowrap">
-                            <Sparkles size={11} /> Cover letter
-                          </span>
-                        )}
-                        {job.resume?.tailoredFor && (
-                          <span title="AI-enhanced" className="text-amber-500">
-                            <Sparkles size={11} />
-                          </span>
-                        )}
-                        {!job.resumeId && !job.coverLetter && <span className="text-xs text-gray-300">—</span>}
-                      </div>
+                      <span className="text-xs text-gray-300">—</span>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
                       <span className="text-xs text-gray-400">
@@ -627,37 +612,8 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
               </form>
             )}
 
-            {/* Step 2: Template */}
+            {/* Step 2: AI Enhancement */}
             {step === 1 && (
-              <div className="space-y-5">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1.5">
-                    Select a Template <span className="text-gray-400 font-normal">(optional — for AI tailoring)</span>
-                  </label>
-                  <select
-                    value={selectedTemplateId}
-                    onChange={(e) => setSelectedTemplateId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">— No template —</option>
-                    {TEMPLATE_OPTIONS.map((t) => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    If you want AI to tailor a resume for this job, pick a template here.
-                  </p>
-                </div>
-
-                <div className="flex justify-between gap-3 pt-2">
-                  <Button variant="secondary" onClick={() => setStep(0)}><ChevronLeft size={15} /> Back</Button>
-                  <Button onClick={() => setStep(2)}>Next <ChevronRight size={15} /></Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: AI Enhancement */}
-            {step === 2 && (
               <div className="space-y-4">
                 {!hasEnoughDescription ? (
                   <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-700">
@@ -669,12 +625,11 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                       Optionally let AI enhance your application. You can always do this later from the job detail page.
                     </p>
 
-                    <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${aiTailor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} ${!selectedTemplateId ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    <label className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${aiTailor ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                       <input
                         type="checkbox"
                         checked={aiTailor}
                         onChange={(e) => setAiTailor(e.target.checked)}
-                        disabled={!selectedTemplateId}
                         className="mt-0.5 accent-blue-600"
                       />
                       <div>
@@ -682,9 +637,7 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                           <FileText size={15} className="text-blue-600" /> Tailor resume to this job
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {selectedTemplateId
-                            ? "AI will build and tailor a resume from your profile to match this job's keywords."
-                            : 'Select a template in the previous step to enable this.'}
+                          AI will build and tailor a resume from your profile to match this job's keywords.
                         </p>
                       </div>
                     </label>
@@ -715,11 +668,13 @@ const streamToString = (jobDescription: string, tone: string): Promise<string> =
                         )}
                       </div>
                     </label>
+
+                    <p className="text-xs text-gray-400 mt-2 p-3 bg-gray-50 rounded-lg border">This will not modify your profile. All enhancements are editable within the job.</p>
                   </>
                 )}
 
                 <div className="flex justify-between gap-3 pt-2">
-                  <Button variant="secondary" onClick={() => setStep(1)}><ChevronLeft size={15} /> Back</Button>
+                  <Button variant="secondary" onClick={() => setStep(0)}><ChevronLeft size={15} /> Back</Button>
                   <div className="flex gap-3">
                     <Button variant="secondary" onClick={() => onSave(false)}>Save Without AI</Button>
                     {hasEnoughDescription && (aiTailor || aiCoverLetter) && (
