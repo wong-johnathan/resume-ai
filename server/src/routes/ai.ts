@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
-import { tailorResume, TailorChanges, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, generateSampleJobTitles, generateSampleJob, InterviewCategory, InterviewFeedback } from '../services/claude';
+import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, generateSampleJobTitles, generateSampleJob, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
 import { logActivity, ActivityAction } from '../services/activityLog';
 
@@ -59,28 +59,27 @@ router.use(aiRateLimit);
 // ─── Tailor resume ───────────────────────────────────────────────────────────
 
 const tailorSchema = z.object({
-  templateId: z.string(),
-  jobDescription: z.string().min(50),
-  jobId: z.string().optional(),
+  jobId: z.string(),
 });
-
-const AI_AMENDMENT_LIMIT = 3;
 
 router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
+    const { jobId } = req.body;
 
-    // Check amendment limit if a jobId is provided
-    if (req.body.jobId) {
-      const amendmentCount = await prisma.aiAmendment.count({
-        where: { jobApplicationId: req.body.jobId },
-      });
-      if (amendmentCount >= AI_AMENDMENT_LIMIT) {
-        return res.status(403).json({ error: `AI amendment limit of ${AI_AMENDMENT_LIMIT} reached for this job posting.` });
-      }
+    // Ownership check
+    const job = await prisma.jobApplication.findFirst({ where: { id: jobId, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (!job.description) return res.status(400).json({ error: 'Job has no description' });
+
+    // Check version limit
+    const jobOutput = await prisma.jobOutput.findUnique({ where: { jobId } });
+    const currentVersion = jobOutput?.resumeVersion ?? 0;
+    if (currentVersion >= 3) {
+      return res.status(403).json({ error: 'Resume tailor limit of 3 reached for this job.' });
     }
 
-    // Build resume content from the user's current profile
+    // Build profile content
     const profile = await prisma.profile.findUnique({
       where: { userId },
       include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
@@ -89,79 +88,42 @@ router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
 
     const profileContent = profileToResumeContent(profile);
 
-    // Determine source snapshot:
-    // - If the job already has a linked resume, snapshot that resume's content (re-tailor diff)
-    // - Otherwise, snapshot the profile-derived content (first tailor diff)
-    let tailorSourceSnapshot: object = profileContent;
-    if (req.body.jobId) {
-      const existingJob = await prisma.jobApplication.findFirst({
-        where: { id: req.body.jobId, userId },
-        include: { resume: true },
-      });
-      if (existingJob?.resume?.contentJson) {
-        tailorSourceSnapshot = existingJob.resume.contentJson as object;
-      }
-    }
+    // AI call — only need tailored content, not changes
+    const { tailored } = await tailorResume(profileContent, job.description);
 
-    // Call AI — returns { tailored, changes }
-    const { tailored, changes } = await tailorResume(profileContent, req.body.jobDescription);
-
-    // Create tailored resume clone
-    const clone = await prisma.resume.create({
-      data: {
-        userId,
-        title: 'Tailored Resume',
-        templateId: req.body.templateId,
-        contentJson: tailored as any,
-        tailoredFor: req.body.jobId ?? 'job',
-        tailorChanges: changes as any,
-        tailorSourceSnapshot: tailorSourceSnapshot as any,
-      },
+    // Upsert JobOutput with new resumeJson and increment version
+    const updated = await prisma.jobOutput.upsert({
+      where: { jobId },
+      create: { jobId, userId, resumeJson: tailored as any, resumeVersion: 1 },
+      update: { resumeJson: tailored as any, resumeVersion: { increment: 1 } },
     });
 
-    // Link clone to job application and record the amendment
-    if (req.body.jobId) {
-      await prisma.jobApplication.updateMany({
-        where: { id: req.body.jobId, userId },
-        data: { resumeId: clone.id },
-      });
-      await prisma.aiAmendment.create({
-        data: {
-          jobApplicationId: req.body.jobId,
-          type: 'RESUME_TAILOR',
-          resumeId: clone.id,
-        },
-      });
-    }
-
-    logActivity(userId, ActivityAction.AI_TAILOR, {
-      jobId: req.body.jobId,
-      resumeId: clone.id,
-    }).catch(() => {});
-    res.json(clone);
+    logActivity(userId, ActivityAction.AI_TAILOR, { jobId }).catch(() => {});
+    res.json(updated);
   } catch (err) { next(err); }
 });
 
 // ─── Cover letter (SSE streaming) ────────────────────────────────────────────
 
 const coverLetterSchema = z.object({
-  jobDescription: z.string().min(50),
+  jobId: z.string(),
   tone: z.enum(['Professional', 'Conversational', 'Enthusiastic']).default('Professional'),
-  jobId: z.string().optional(),
 });
 
 router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
+    const { jobId, tone } = req.body;
 
-    // Check amendment limit if a jobId is provided
-    if (req.body.jobId) {
-      const amendmentCount = await prisma.aiAmendment.count({
-        where: { jobApplicationId: req.body.jobId },
-      });
-      if (amendmentCount >= AI_AMENDMENT_LIMIT) {
-        return res.status(403).json({ error: `AI amendment limit of ${AI_AMENDMENT_LIMIT} reached for this job posting.` });
-      }
+    const job = await prisma.jobApplication.findFirst({ where: { id: jobId, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    if (!job.description) return res.status(400).json({ error: 'Job has no description' });
+
+    // Check version limit BEFORE starting stream
+    const jobOutput = await prisma.jobOutput.findUnique({ where: { jobId } });
+    const currentVersion = jobOutput?.coverLetterVersion ?? 0;
+    if (currentVersion >= 3) {
+      return res.status(403).json({ error: 'Cover letter generation limit of 3 reached for this job.' });
     }
 
     const profile = await prisma.profile.findUnique({
@@ -176,23 +138,24 @@ router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, n
     res.flushHeaders();
 
     let generatedText = '';
-    await generateCoverLetter(profile as any, req.body.jobDescription, req.body.tone, (chunk: string) => {
+    let streamAborted = false;
+    req.on('close', () => { streamAborted = true; });
+
+    await generateCoverLetter(profile as any, job.description, tone, (chunk: string) => {
       generatedText += chunk;
       res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
     });
 
-    // Record the amendment after successful generation
-    if (req.body.jobId) {
-      await prisma.aiAmendment.create({
-        data: {
-          jobApplicationId: req.body.jobId,
-          type: 'COVER_LETTER',
-          coverLetterText: generatedText,
-        },
+    // Only persist and increment version on successful stream completion
+    if (!streamAborted) {
+      await prisma.jobOutput.upsert({
+        where: { jobId },
+        create: { jobId, userId, coverLetterText: generatedText, coverLetterVersion: 1 },
+        update: { coverLetterText: generatedText, coverLetterVersion: { increment: 1 } },
       });
     }
 
-    logActivity(userId, ActivityAction.AI_COVER_LETTER, { jobId: req.body.jobId ?? null }).catch(() => {});
+    logActivity(userId, ActivityAction.AI_COVER_LETTER, { jobId }).catch(() => {});
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (err) { next(err); }
@@ -239,7 +202,6 @@ router.post('/crawl-url', validateBody(crawlUrlSchema), async (req, res, next) =
 
 const analyzeFitSchema = z.object({
   jobDescription: z.string().min(50),
-  resumeId: z.string().optional(),
 });
 
 router.post('/analyze-fit', validateBody(analyzeFitSchema), async (req, res, next) => {
@@ -252,17 +214,9 @@ router.post('/analyze-fit', validateBody(analyzeFitSchema), async (req, res, nex
     });
     if (!profile) return res.status(404).json({ error: 'Profile not found' });
 
-    let resumeContent;
-    if (req.body.resumeId) {
-      const resume = await prisma.resume.findFirst({
-        where: { id: req.body.resumeId, userId },
-      });
-      if (resume) resumeContent = resume.contentJson as any;
-    }
-
     const result = await analyzeJobFit({
       jobDescription: req.body.jobDescription,
-      resumeContent,
+      resumeContent: undefined,
       profile: {
         summary: profile.summary,
         experiences: profile.experiences.map((e) => ({
