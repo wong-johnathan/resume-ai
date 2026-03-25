@@ -4,6 +4,9 @@ import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
 import { logActivity, ActivityAction } from '../services/activityLog';
+import { profileToResumeContent } from '../utils/profileToContent';
+import { renderTemplate, coverLetterTemplate } from '../services/templates';
+import { generatePdf } from '../services/pdf';
 
 const router = Router();
 router.use(requireAuth);
@@ -16,10 +19,8 @@ const createJobSchema = z.object({
   status: z.string().min(1).default('SAVED'),
   appliedAt: z.string().optional(),
   notes: z.string().optional(),
-  coverLetter: z.string().optional(),
   salary: z.string().optional(),
   location: z.string().optional(),
-  resumeId: z.string().optional(),
   fitAnalysis: z.any().optional(),
 });
 
@@ -27,6 +28,13 @@ const updateJobSchema = createJobSchema.partial();
 
 const updateHistoryNoteSchema = z.object({
   note: z.string().max(1000).nullable(),
+});
+
+const patchOutputSchema = z.object({
+  resumeJson: z.any().optional(),
+  coverLetterText: z.string().optional(),
+}).refine(data => data.resumeJson !== undefined || data.coverLetterText !== undefined, {
+  message: 'At least one field (resumeJson or coverLetterText) must be provided',
 });
 
 router.get('/', async (req, res, next) => {
@@ -43,14 +51,15 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', validateBody(createJobSchema), async (req, res, next) => {
   try {
-    const job = await prisma.jobApplication.create({
-      data: {
-        ...req.body,
-        userId: getUser(req).id,
-        appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : null,
-      },
+    const userId = getUser(req).id;
+    let job: any;
+    await prisma.$transaction(async (tx) => {
+      job = await tx.jobApplication.create({
+        data: { ...req.body, userId, appliedAt: req.body.appliedAt ? new Date(req.body.appliedAt) : null },
+      });
+      await tx.jobOutput.create({ data: { jobId: job.id, userId } });
     });
-    logActivity(getUser(req).id, ActivityAction.JOB_CREATED, {
+    logActivity(userId, ActivityAction.JOB_CREATED, {
       jobId: job.id,
       company: job.company,
       jobTitle: job.jobTitle,
@@ -64,8 +73,7 @@ router.get('/:id', async (req, res, next) => {
     const job = await prisma.jobApplication.findFirst({
       where: { id: req.params.id, userId: getUser(req).id },
       include: {
-        resume: true,
-        aiAmendments: { orderBy: { createdAt: 'desc' } },
+        jobOutput: true,
         statusHistory: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -112,8 +120,7 @@ router.put('/:id', validateBody(updateJobSchema), async (req, res, next) => {
     const updated = await prisma.jobApplication.findFirst({
       where: { id, userId },
       include: {
-        resume: true,
-        aiAmendments: { orderBy: { createdAt: 'desc' } },
+        jobOutput: true,
         statusHistory: { orderBy: { createdAt: 'desc' } },
       },
     });
@@ -138,15 +145,99 @@ router.delete('/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.put('/:id/resume', async (req, res, next) => {
+router.get('/:id/output', async (req, res, next) => {
   try {
-    const { resumeId } = req.body;
-    const job = await prisma.jobApplication.updateMany({
-      where: { id: req.params.id, userId: getUser(req).id },
-      data: { resumeId: resumeId ?? null },
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    const output = await prisma.jobOutput.findUnique({ where: { jobId: req.params.id } });
+    if (!output) {
+      return res.json({ resumeJson: null, coverLetterText: null, resumeVersion: 0, coverLetterVersion: 0 });
+    }
+    res.json(output);
+  } catch (err) { next(err); }
+});
+
+router.patch('/:id/output', validateBody(patchOutputSchema), async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    const updated = await prisma.jobOutput.upsert({
+      where: { jobId: req.params.id },
+      create: { jobId: req.params.id, userId, ...req.body },
+      update: req.body,
     });
-    if (job.count === 0) return res.status(404).json({ error: 'Job not found' });
-    res.json({ success: true });
+    res.json(updated);
+  } catch (err) { next(err); }
+});
+
+router.get('/:id/resume/pdf', async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    const output = await prisma.jobOutput.findUnique({ where: { jobId: req.params.id } });
+    const templateId = (req.query.templateId as string) || 'minimal';
+    let content;
+    if (output?.resumeJson) {
+      content = output.resumeJson as any;
+    } else {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      });
+      if (!profile) return res.status(404).json({ error: 'Profile not found' });
+      content = profileToResumeContent(profile);
+    }
+    const html = renderTemplate(templateId, content);
+    const pdf = await generatePdf(html);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
+    res.send(pdf);
+  } catch (err) { next(err); }
+});
+
+router.get('/:id/resume/preview', async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    const output = await prisma.jobOutput.findUnique({ where: { jobId: req.params.id } });
+    const templateId = (req.query.templateId as string) || 'minimal';
+    let content;
+    if (output?.resumeJson) {
+      content = output.resumeJson as any;
+    } else {
+      const profile = await prisma.profile.findUnique({
+        where: { userId },
+        include: { experiences: { orderBy: { order: 'asc' } }, educations: { orderBy: { order: 'asc' } }, skills: true, certifications: true },
+      });
+      if (!profile) return res.status(404).json({ error: 'Profile not found' });
+      content = profileToResumeContent(profile);
+    }
+    const html = renderTemplate(templateId, content);
+    res.send(html);
+  } catch (err) { next(err); }
+});
+
+router.get('/:id/cover-letter/pdf', async (req, res, next) => {
+  try {
+    const userId = getUser(req).id;
+    const job = await prisma.jobApplication.findFirst({ where: { id: req.params.id, userId } });
+    if (!job) return res.status(404).json({ error: 'Job not found' });
+    const output = await prisma.jobOutput.findUnique({ where: { jobId: req.params.id } });
+    if (!output?.coverLetterText) return res.status(400).json({ error: 'No cover letter available' });
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { firstName: true, lastName: true, email: true, phone: true, location: true },
+    });
+    if (!profile) return res.status(404).json({ error: 'Profile not found' });
+    const html = coverLetterTemplate(output.coverLetterText, profile);
+    const pdf = await generatePdf(html);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="cover-letter.pdf"');
+    res.send(pdf);
   } catch (err) { next(err); }
 });
 
