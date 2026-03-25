@@ -47,7 +47,7 @@ export interface ResumeContent {
 // ─── Tailor Result Types ──────────────────────────────────────────────────────
 
 export interface BulletChange {
-  type: 'reworded' | 'added' | 'removed' | 'unchanged';
+  type: 'reworded' | 'added' | 'removed' | 'unchanged' | 'combined';
   original: string | null;
   rewritten: string | null;
   reason: string;
@@ -89,7 +89,7 @@ export interface TailorResult {
 // ─── Tailor Result Zod Schema ─────────────────────────────────────────────────
 
 const bulletChangeSchema = z.object({
-  type: z.enum(['reworded', 'added', 'removed', 'unchanged']),
+  type: z.enum(['reworded', 'added', 'removed', 'unchanged', 'combined']),
   original: z.string().nullable(),
   rewritten: z.string().nullable(),
   reason: z.string(),
