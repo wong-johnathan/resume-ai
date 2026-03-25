@@ -111,14 +111,11 @@ export function ResumeEditPage() {
     <div className="flex flex-col h-full -m-6">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-6 py-4 bg-white border-b shadow-sm flex-shrink-0">
-        <Link to={resume.tailoredFor ? `/jobs/${resume.tailoredFor}` : `/resumes/${resume.id}`} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+        <Link to={`/resumes/${resume.id}`} className="text-gray-400 hover:text-gray-600 flex-shrink-0">
           <ArrowLeft size={20} />
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-semibold text-gray-900 truncate">{resume.title}</h1>
-          {resume.tailoredFor && (
-            <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">Tailored</span>
-          )}
         </div>
         <a href={getPdfUrl(resume.id)} download={`${resume.title}.pdf`}>
           <Button variant="secondary" size="sm">

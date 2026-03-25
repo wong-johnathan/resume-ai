@@ -55,7 +55,6 @@ export function ResumesPage() {
                 </div>
                 <h3 className="font-semibold text-gray-900 mb-1">{r.title}</h3>
                 <p className="text-xs text-gray-500 capitalize">{r.templateId} template</p>
-                {r.tailoredFor && <p className="text-xs text-blue-600 mt-1">Tailored: {r.tailoredFor.slice(0, 40)}…</p>}
                 <p className="text-xs text-gray-400 mt-3">Updated {formatDate(r.updatedAt)}</p>
               </Link>
               <div className="flex items-center gap-2 px-5 pb-4">
