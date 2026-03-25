@@ -169,6 +169,7 @@ model JobOutput {
   coverLetterText      String?  @db.Text
   resumeVersion        Int      @default(0)
   coverLetterVersion   Int      @default(0)
+  tailorChanges        Json?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
