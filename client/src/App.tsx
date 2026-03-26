@@ -14,6 +14,7 @@ import { ResumeDetailPage } from './pages/ResumeDetailPage';
 import { ResumeEditPage } from './pages/ResumeEditPage';
 import { JobTrackerPage } from './pages/JobTrackerPage';
 import { JobDetailPage } from './pages/JobDetailPage';
+import { BillingPage } from './pages/BillingPage';
 
 function RedirectJobPrep() {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +45,7 @@ export default function App() {
                   <Route path="/jobs" element={<JobTrackerPage />} />
                   <Route path="/jobs/:id" element={<JobDetailPage />} />
                   <Route path="/jobs/:id/prep" element={<RedirectJobPrep />} />
+                  <Route path="/billing" element={<BillingPage />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
