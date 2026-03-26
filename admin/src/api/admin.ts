@@ -29,6 +29,14 @@ export interface UserDetail {
   aiAmendmentCount: number;
   aiUsage: { tailor: number; coverLetter: number; interviewPrep: number; summary: number };
   activityLog: ActivityLogEntry[];
+  subscription?: {
+    status: 'TRIAL' | 'PRO' | 'EXPIRED';
+    creditsRemaining: number;
+    creditsTotal: number;
+    jobsUsed: number;
+    currentPeriodEnd?: string | Date;
+    cancelAtPeriodEnd?: boolean;
+  };
 }
 
 export interface ResumeSummary {

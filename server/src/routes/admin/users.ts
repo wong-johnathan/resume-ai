@@ -43,7 +43,7 @@ router.get('/:userId', async (req, res, next) => {
   try {
     const { userId } = req.params;
 
-    const [user, resumes, jobs, aiAmendmentCount, activityLog, aiTailor, aiCoverLetter, aiInterviewPrep, aiSummary] = await Promise.all([
+    const [user, resumes, jobs, aiAmendmentCount, activityLog, aiTailor, aiCoverLetter, aiInterviewPrep, aiSummary, subscription, jobsUsed] = await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
         include: { profile: true },
@@ -70,13 +70,25 @@ router.get('/:userId', async (req, res, next) => {
       prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_COVER_LETTER } }),
       prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_INTERVIEW_PREP } }),
       prisma.activityLog.count({ where: { userId, action: ActivityAction.AI_SUMMARY } }),
+      prisma.subscription.findUnique({ where: { userId } }),
+      prisma.jobApplication.count({ where: { userId } }),
     ]);
 
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const aiUsage = { tailor: aiTailor, coverLetter: aiCoverLetter, interviewPrep: aiInterviewPrep, summary: aiSummary };
 
-    res.json({ user, resumes, jobs, aiAmendmentCount, aiUsage, activityLog });
+    res.json({
+      user,
+      resumes,
+      jobs,
+      aiAmendmentCount,
+      aiUsage,
+      activityLog,
+      subscription: subscription
+        ? { ...subscription, jobsUsed }
+        : { status: 'TRIAL', creditsRemaining: 50, creditsTotal: 50, jobsUsed, trialLimit: 3 },
+    });
   } catch (err) { next(err); }
 });
 
