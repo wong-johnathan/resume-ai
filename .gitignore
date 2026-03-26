@@ -8,3 +8,5 @@ server/prisma/.schema.hash
 *.log
 .turbo/
 .worktrees/
+.superpowers/
+client/tsconfig.tsbuildinfo
