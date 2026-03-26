@@ -48,7 +48,6 @@ Admin accounts use a **separate OAuth session** from regular users (`admin.sid` 
 | `/users/:userId` | User detail: profile, resumes, job applications |
 | `/users/:userId/jobs/:jobId` | Job detail: outputs, AI amendments, versions |
 | `/logs` | ActivityLog table with filters |
-| `/resumes` | Resume list across all users |
 
 All routes except `/login` require an active admin session. The `AdminAuthGuard` component in `App.tsx` handles the redirect.
 
@@ -81,8 +80,7 @@ admin/src/
 │   ├── Users.tsx         # User list table
 │   ├── UserDetail.tsx    # User profile + resumes + jobs
 │   ├── JobDetail.tsx     # Job outputs + amendments
-│   ├── Logs.tsx          # Activity log
-│   └── Resumes.tsx       # Resume list
+│   └── Logs.tsx          # Activity log
 └── components/
     ├── AdminLayout.tsx       # Shell with top nav
     ├── DataTable.tsx         # Reusable sortable/filterable table
