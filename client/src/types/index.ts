@@ -1,9 +1,21 @@
+export interface UserSubscription {
+  status: 'TRIAL' | 'PRO' | 'EXPIRED';
+  creditsRemaining: number;
+  creditsTotal: number;
+  creditsResetAt: string | null;
+  jobsUsed: number;
+  trialLimit: number;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   displayName?: string | null;
   avatarUrl?: string | null;
   provider: string;
+  subscription?: UserSubscription;
 }
 
 export interface Experience {
