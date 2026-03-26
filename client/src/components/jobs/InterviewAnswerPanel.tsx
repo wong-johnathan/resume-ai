@@ -3,6 +3,7 @@ import { CheckCircle, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react';
 import { InterviewQuestion, InterviewFeedback } from '../../types';
 import { submitAnswer, clearAnswer, generateSampleResponse } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
+import CreditCost from '../ui/CreditCost';
 
 interface Props {
   jobId: string;
@@ -93,13 +94,16 @@ export function InterviewAnswerPanel({
   ) : null;
 
   const generateSampleButton = hasDescription && !question.sampleResponse ? (
-    <button
-      onClick={handleGenerateSample}
-      disabled={generatingSample}
-      className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
-    >
-      {generatingSample ? 'Generating…' : 'Generate sample response'}
-    </button>
+    <span className="inline-flex items-center gap-2">
+      <button
+        onClick={handleGenerateSample}
+        disabled={generatingSample}
+        className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+      >
+        {generatingSample ? 'Generating…' : 'Generate sample response'}
+      </button>
+      <CreditCost cost={2} tooltip />
+    </span>
   ) : null;
 
   if (hasFeedback && question.feedback) {
@@ -194,6 +198,7 @@ export function InterviewAnswerPanel({
         >
           {submitting ? 'Getting feedback…' : 'Submit for Feedback'}
         </button>
+        <CreditCost cost={2} tooltip />
         {generateSampleButton}
       </div>
       {sampleResponseCard}

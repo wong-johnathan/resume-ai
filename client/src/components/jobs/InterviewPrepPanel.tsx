@@ -11,6 +11,7 @@ import {
 import { useAppStore } from '../../store/useAppStore';
 import { useTour } from '../../hooks/useTour';
 import { TakeTourButton } from '../tour/TakeTourButton';
+import CreditCost from '../ui/CreditCost';
 
 interface Props {
   jobId: string;
@@ -95,14 +96,17 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
               <p className="text-sm text-gray-500 mb-3">
                 Generate tailored interview questions based on this job and your profile.
               </p>
-              <button
-                onClick={handleStartPrep}
-                disabled={loadingCategories}
-                data-tour="prepare-btn"
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {loadingCategories ? 'Analyzing job…' : 'Prepare for Interview'}
-              </button>
+              <div className="inline-flex items-center gap-2">
+                <button
+                  onClick={handleStartPrep}
+                  disabled={loadingCategories}
+                  data-tour="prepare-btn"
+                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {loadingCategories ? 'Analyzing job…' : 'Prepare for Interview'}
+                </button>
+                <CreditCost cost={5} tooltip />
+              </div>
             </>
           )}
         </div>

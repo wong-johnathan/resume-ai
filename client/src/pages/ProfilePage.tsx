@@ -11,6 +11,7 @@ import { generateSummary } from '../api/ai';
 import { deleteAccount } from '../api/auth';
 import { useAppStore } from '../store/useAppStore';
 import { Profile, Certification, Education, Experience } from '../types';
+import CreditCost from '../components/ui/CreditCost';
 
 type ProfileForm = Omit<Profile, 'id' | 'userId' | 'experiences' | 'educations' | 'skills' | 'certifications'>;
 
@@ -261,6 +262,7 @@ export function ProfilePage() {
                   {generatingSummary ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                   {generatingSummary ? 'Generating…' : 'Generate'}
                 </button>
+                <CreditCost cost={1} tooltip />
                 <button
                   type="button"
                   onClick={() => { setShowSummaryGen(false); setTargetRole(''); }}
