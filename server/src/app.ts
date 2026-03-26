@@ -19,6 +19,7 @@ import templatesRouter from './routes/templates';
 import interviewPrepRouter from './routes/interviewPrep';
 import toursRouter from './routes/tours';
 import adminRouter from './routes/admin/index';
+import billingRouter from './routes/billing';
 
 const PgSession = connectPgSimple(session);
 
@@ -70,7 +71,14 @@ export function createApp() {
   app.use(cors({ origin: allowedOrigins, credentials: true }));
 
   app.use(morgan('dev'));
-  app.use(express.json({ limit: '2mb' }));
+  // Conditional body parser: webhook needs raw Buffer; all other routes get JSON.
+  app.use((req, res, next) => {
+    if (req.originalUrl === '/api/billing/webhook') {
+      express.raw({ type: 'application/json' })(req, res, next);
+    } else {
+      express.json({ limit: '2mb' })(req, res, next);
+    }
+  });
 
   // Path-conditional session: admin routes use admin.sid, all others use connect.sid
   app.use((req, res, next) => {
@@ -97,6 +105,7 @@ export function createApp() {
   app.use('/api/interview-prep', interviewPrepRouter);
   app.use('/api/tours', toursRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/billing', billingRouter);
 
   app.use(errorHandler);
 
