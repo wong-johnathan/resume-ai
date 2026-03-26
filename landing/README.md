@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Landing
+
+Static marketing site for Resume AI. Single-page Next.js app exported to static HTML and deployed to Vercel.
+
+> Part of the [resume-app](../README.md) monorepo.
+> **Note:** This Next.js version may have breaking changes from older releases. Read `node_modules/next/dist/docs/` before writing code. See also `AGENTS.md`.
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js App Router |
+| UI | React 19, TailwindCSS |
+| Animation | Framer Motion |
+| Output | Static export (`output: 'export'`) |
+| Deployment | Vercel |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# From the repo root
+npm run dev:landing
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Opens on [http://localhost:3001](http://localhost:3001).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cd landing
+npm run build
+```
 
-## Learn More
+Produces a fully static site in `landing/out/`. No server required.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+landing/
+├── app/
+│   ├── layout.tsx    # Root layout: metadata, fonts, global CSS
+│   ├── page.tsx      # Home page — composes all section components
+│   ├── globals.css
+│   ├── robots.ts     # SEO: robots.txt
+│   └── sitemap.ts    # SEO: sitemap.xml
+├── components/
+│   ├── Navbar.tsx            # Navigation with CTA
+│   ├── Hero.tsx              # Headline + primary CTA
+│   ├── FeaturesSection.tsx   # Feature grid
+│   ├── HowItWorks.tsx        # 3-step walkthrough
+│   ├── TemplatesSection.tsx  # Resume template showcase
+│   ├── WhySection.tsx        # Value proposition
+│   └── Footer.tsx
+└── public/                   # Static assets (images, og-image.png)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deployment
 
-## Deploy on Vercel
+Deployed to Vercel as a static site. `vercel.json` is already configured.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Connect the GitHub repo at [vercel.com](https://vercel.com)
+2. Set **Root Directory** to `landing`, Framework: **Next.js**
+3. No environment variables required
+4. The `output: 'export'` config in `next.config.ts` produces a static export, which Vercel deploys automatically
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Push to `main` triggers an automatic redeploy.
+
+## Adding a Section
+
+1. Create `components/MySection.tsx`
+2. Import and add it to `app/page.tsx` in the desired order
+3. Use Framer Motion for entrance animations:
+
+```tsx
+import { motion } from 'framer-motion';
+
+export default function MySection() {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      viewport={{ once: true }}
+    >
+      {/* content */}
+    </motion.section>
+  );
+}
+```
+
+## Constraints
+
+- `output: 'export'` is set — do not use features incompatible with static export:
+  - No `getServerSideProps`
+  - No API routes
+  - No `next/image` optimization (use plain `<img>` tags)
+- No environment variables — this is a fully static site
+- The `@/*` path alias maps to the project root (set in `tsconfig.json`)
