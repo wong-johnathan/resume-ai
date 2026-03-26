@@ -1,5 +1,6 @@
 import { RequestHandler } from 'express';
 import { deductCredits } from '../services/credits';
+import { getUser } from './requireAuth';
 
 /**
  * Returns middleware that deducts `cost` credits before the AI handler runs.
@@ -8,7 +9,7 @@ import { deductCredits } from '../services/credits';
 export function requireCredits(cost: number): RequestHandler {
   return async (req, res, next) => {
     try {
-      const userId = (req.user as any)!.id;
+      const userId = getUser(req).id;
       const result = await deductCredits(userId, cost);
 
       if (!result.ok) {

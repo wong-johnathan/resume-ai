@@ -1,9 +1,10 @@
 import { RequestHandler } from 'express';
 import { prisma } from '../config/prisma';
+import { getUser } from './requireAuth';
 
 export const requireSubscription: RequestHandler = async (req, res, next) => {
   try {
-    const userId = (req.user as any)!.id;
+    const userId = getUser(req).id;
 
     const sub = await prisma.subscription.upsert({
       where: { userId },
