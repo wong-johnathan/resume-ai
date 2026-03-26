@@ -85,7 +85,7 @@ ${certifications.length?`<div class="section"><div class="section-title">Certifi
 // ─── Tech (dark theme, monospace accents) ─────────────────────────────────────
 
 function techTemplate(c: ResumeContent): string {
-  const { personalInfo: p, summary, experiences, educations, skills, certifications } = c;
+  const { personalInfo: p, summary, experiences, educations, skills, certifications: _certifications } = c;
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">
 <style>
   @page{background:#0f172a;}

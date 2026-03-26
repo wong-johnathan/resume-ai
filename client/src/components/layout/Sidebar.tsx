@@ -16,7 +16,7 @@ interface Props {
 }
 
 export function Sidebar({ open, onClose }: Props) {
-  const { user, refetch } = useAuth();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     await logout();

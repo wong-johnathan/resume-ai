@@ -9,7 +9,11 @@
     "migrate": "bash scripts/migrate-if-changed.sh",
     "migrate:force": "prisma migrate dev",
     "studio": "prisma studio",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

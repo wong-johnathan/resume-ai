@@ -15,10 +15,20 @@
     "dev:landing": "npm --prefix landing run dev",
     "build": "npm run build --workspace=server && npm run build --workspace=client",
     "db:migrate": "npm run migrate --workspace=server",
-    "db:studio": "npm run studio --workspace=server"
+    "db:studio": "npm run studio --workspace=server",
+    "lint": "npm run lint --workspace=client && npm run lint --workspace=server && npm run lint --workspace=admin",
+    "lint:fix": "npm run lint:fix --workspace=client && npm run lint:fix --workspace=server && npm run lint:fix --workspace=admin",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,css,md}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,css,md}\" --ignore-path .prettierignore"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "eslint": "^9.0.0",
+    "typescript-eslint": "^8.0.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.0.0"
   },
   "dependencies": {
     "pdf-parse": "^1.1.1"

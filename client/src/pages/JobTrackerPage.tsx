@@ -202,7 +202,7 @@ export function JobTrackerPage() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
-  const { register, handleSubmit, reset, watch, setValue } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
+  const { register, handleSubmit, reset, watch } = useForm<JobDetailsForm>({ defaultValues: { status: 'SAVED' } });
   const [jobDetails, setJobDetails] = useState<JobDetailsForm | null>(null);
   const [aiTailor, setAiTailor] = useState(false);
   const [aiCoverLetter, setAiCoverLetter] = useState(false);

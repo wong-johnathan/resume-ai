@@ -81,6 +81,7 @@ if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET && env.GITHUB_CALLBACK_URL)
         clientSecret: env.GITHUB_CLIENT_SECRET,
         callbackURL: env.GITHUB_CALLBACK_URL,
       },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
       async (_accessToken: string, _refreshToken: string, profile: any, done: Function) => {
         try {
           const email = profile.emails?.[0]?.value ?? `${profile.id}@github.com`;

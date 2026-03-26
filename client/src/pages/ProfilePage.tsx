@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { Plus, Trash2, ChevronDown, ChevronUp, Pencil, FileUp, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
 import { Input } from '../components/ui/Input';
-import { Textarea } from '../components/ui/Textarea';
 import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -12,13 +11,11 @@ import { generateSummary } from '../api/ai';
 import { deleteAccount } from '../api/auth';
 import { useAppStore } from '../store/useAppStore';
 import { Profile, Certification, Education, Experience } from '../types';
-import { useNavigate } from 'react-router-dom';
 
 type ProfileForm = Omit<Profile, 'id' | 'userId' | 'experiences' | 'educations' | 'skills' | 'certifications'>;
 
 export function ProfilePage() {
   const { addToast } = useAppStore();
-  const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
   const [expandedSections, setExpandedSections] = useState({ experience: true, education: true, skills: true, certs: true });
