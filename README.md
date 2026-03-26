@@ -81,7 +81,7 @@ Copy the example env files and fill in your values:
 
 ```bash
 cp server/.env.example server/.env
-cp client/.env.example client/.env
+cp client/.env.example client/.env  # Optional — no secrets required for local development
 ```
 
 **Required server env vars (`server/.env`):**
@@ -167,7 +167,7 @@ resume-app/
 
 **Job statuses:** Fully user-defined via `UserJobStatus` table. Status options in the job table are driven by these custom labels.
 
-**AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `AiAmendment`. Max 1 amendment per job — enforced on both server (HTTP 403) and client (buttons disabled).
+**AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `JobOutput`. Resume tailoring is limited to 1 per job; cover letter generation is limited to 3 per job — both enforced server-side (HTTP 403) and client-side (buttons disabled).
 
 ## API Reference
 
