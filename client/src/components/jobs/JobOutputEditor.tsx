@@ -262,6 +262,26 @@ function SideBySideCard({ before, after }: { before: ReactNode; after: ReactNode
   );
 }
 
+function AIChangeAccordion({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-indigo-100 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-indigo-50/40 transition-colors"
+      >
+        <span className="text-xs font-semibold text-indigo-600">AI Changes — {label}</span>
+        {open
+          ? <ChevronUp size={13} className="text-indigo-400 flex-shrink-0" />
+          : <ChevronDown size={13} className="text-indigo-400 flex-shrink-0" />
+        }
+      </button>
+      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
+    </div>
+  );
+}
+
 function InlineSectionChange({
   title,
   subtitle,
@@ -279,33 +299,35 @@ function InlineSectionChange({
 }) {
   const visible = bulletChanges?.filter((b) => b.type !== 'unchanged') ?? [];
   return (
-    <div className="flex flex-col gap-3 px-1 pt-3 pb-1">
-      <div>
-        <h3 className="text-base font-bold text-gray-900">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>}
-        <p className="text-sm text-gray-500 mt-1">{subtext}</p>
-      </div>
-      <SideBySideCard before={before} after={after} />
-      {visible.length > 0 && (
+    <AIChangeAccordion label={title}>
+      <div className="flex flex-col gap-3">
         <div>
-          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Change Details</div>
-          <div className="flex flex-col gap-2">
-            {visible.map((b) => {
-              const badge = BULLET_BADGE[b.type];
-              if (!badge) return null;
-              return (
-                <div key={b.original ?? b.rewritten} className="flex items-start gap-2">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
-                    {badge.label}
-                  </span>
-                  <span className="text-xs text-gray-500 leading-relaxed">{b.reason}</span>
-                </div>
-              );
-            })}
-          </div>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>}
+          <p className="text-sm text-gray-500 mt-1">{subtext}</p>
         </div>
-      )}
-    </div>
+        <SideBySideCard before={before} after={after} />
+        {visible.length > 0 && (
+          <div>
+            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Change Details</div>
+            <div className="flex flex-col gap-2">
+              {visible.map((b) => {
+                const badge = BULLET_BADGE[b.type];
+                if (!badge) return null;
+                return (
+                  <div key={b.original ?? b.rewritten} className="flex items-start gap-2">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
+                      {badge.label}
+                    </span>
+                    <span className="text-xs text-gray-500 leading-relaxed">{b.reason}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </AIChangeAccordion>
   );
 }
 
@@ -313,29 +335,31 @@ function InlineSkillsChange({ subtext, skillChanges }: { subtext: string; skillC
   const visible = skillChanges.filter((s) => s.type !== 'unchanged');
   if (visible.length === 0) return null;
   return (
-    <div className="flex flex-col gap-3 px-1 pt-3 pb-1">
-      <div>
-        <h3 className="text-base font-bold text-gray-900">Skills</h3>
-        <p className="text-sm text-gray-500 mt-1">{subtext}</p>
-      </div>
-      <div className="flex flex-col gap-2">
-        {visible.map((s) => {
-          const badge = SKILL_BADGE[s.type];
-          if (!badge) return null;
-          return (
-            <div key={s.name} className="flex items-start gap-2">
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
-                {badge.label}
-              </span>
-              <div>
-                <span className="text-xs font-medium text-gray-700">{s.name}</span>
-                <span className="text-xs text-gray-400 ml-1">— {s.reason}</span>
+    <AIChangeAccordion label="Skills">
+      <div className="flex flex-col gap-3">
+        <div>
+          <h3 className="text-base font-bold text-gray-900">Skills</h3>
+          <p className="text-sm text-gray-500 mt-1">{subtext}</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          {visible.map((s) => {
+            const badge = SKILL_BADGE[s.type];
+            if (!badge) return null;
+            return (
+              <div key={s.name} className="flex items-start gap-2">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
+                  {badge.label}
+                </span>
+                <div>
+                  <span className="text-xs font-medium text-gray-700">{s.name}</span>
+                  <span className="text-xs text-gray-400 ml-1">— {s.reason}</span>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </AIChangeAccordion>
   );
 }
 
