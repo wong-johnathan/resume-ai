@@ -107,4 +107,12 @@ export const adminApi = {
 
   getLogs: (params?: { page?: number; limit?: number; userId?: string; action?: string }) =>
     api.get<PaginatedResponse<ActivityLogEntry>>('/admin/logs', { params }).then((r) => r.data),
+
+  adjustCredits: (userId: string, credits: number): Promise<{ creditsRemaining: number }> =>
+    api.post(`/admin/users/${userId}/credits`, { credits }).then((r) => r.data),
 };
+
+export async function adjustCredits(userId: string, credits: number): Promise<{ creditsRemaining: number }> {
+  const { data } = await api.post(`/admin/users/${userId}/credits`, { credits });
+  return data;
+}

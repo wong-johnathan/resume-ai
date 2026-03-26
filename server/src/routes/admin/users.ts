@@ -104,6 +104,28 @@ router.get('/:userId/jobs/:jobId', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// POST /api/admin/users/:id/credits
+router.post('/:id/credits', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const credits = Number(req.body.credits);
+
+    if (!Number.isInteger(credits) || credits < 0 || credits > 10000) {
+      return res.status(400).json({ error: 'credits must be an integer between 0 and 10000' });
+    }
+
+    const sub = await prisma.subscription.upsert({
+      where: { userId: id },
+      update: { creditsRemaining: credits },
+      create: { userId: id, creditsRemaining: credits },
+    });
+
+    res.json({ creditsRemaining: sub.creditsRemaining });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // DELETE /api/admin/users/:userId
 router.delete('/:userId', async (req, res, next) => {
   try {
