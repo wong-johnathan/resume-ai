@@ -10,7 +10,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
             ResumeAI
           </Link>
           <Link href="/" className="text-blue-600 hover:text-blue-700 text-sm transition-colors">
-            ← Back to home
+            <span aria-hidden="true">←</span> Back to home
           </Link>
         </div>
       </header>
