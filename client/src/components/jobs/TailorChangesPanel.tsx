@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { TailorChanges, BulletChange, SkillChange } from '../../types';
 
@@ -21,7 +22,7 @@ const SKILL_BADGE: Record<string, { label: string; className: string }> = {
   reordered:{ label: 'REORDERED', className: 'bg-blue-100 text-blue-700' },
 };
 
-function SideBySideCard({ before, after }: { before: React.ReactNode; after: React.ReactNode }) {
+function SideBySideCard({ before, after }: { before: ReactNode; after: ReactNode }) {
   return (
     <div className="grid grid-cols-2 gap-3">
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -47,7 +48,7 @@ function ChangeDetails({ bulletChanges }: { bulletChanges: BulletChange[] }) {
           const badge = BULLET_BADGE[b.type];
           if (!badge) return null;
           return (
-            <div key={i} className="flex items-start gap-2">
+            <div key={b.original ?? b.rewritten ?? i} className="flex items-start gap-2">
               <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
                 {badge.label}
               </span>
@@ -69,7 +70,7 @@ function SkillChangeDetails({ skillChanges }: { skillChanges: SkillChange[] }) {
         const badge = SKILL_BADGE[s.type];
         if (!badge) return null;
         return (
-          <div key={i} className="flex items-start gap-2">
+          <div key={s.name} className="flex items-start gap-2">
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
               {badge.label}
             </span>
@@ -155,14 +156,14 @@ export function TailorChangesPanel({ changes, initiallyExpanded, onCollapse }: P
                   <ul className="list-disc list-outside pl-4 space-y-1.5">
                     {exp.bulletChanges
                       .filter((b) => b.original)
-                      .map((b, i) => <li key={i}>{b.original}</li>)}
+                      .map((b, i) => <li key={b.original ?? i}>{b.original}</li>)}
                   </ul>
                 }
                 after={
                   <ul className="list-disc list-outside pl-4 space-y-1.5">
                     {exp.bulletChanges
                       .filter((b) => b.rewritten)
-                      .map((b, i) => <li key={i}>{b.rewritten}</li>)}
+                      .map((b, i) => <li key={b.rewritten ?? i}>{b.rewritten}</li>)}
                   </ul>
                 }
               />
