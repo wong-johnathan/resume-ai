@@ -194,6 +194,8 @@ RULES:
           "reason": "JD lists React as a primary requirement — moved to top"
         }
       ]
+
+IMPORTANT: skill "type" must be exactly one of: "added" | "removed" | "reordered" | "unchanged". Use "unchanged" for skills that were kept as-is.
     }
   }
 }
