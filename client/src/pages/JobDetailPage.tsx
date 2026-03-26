@@ -20,7 +20,6 @@ import { InterviewPrepPanel } from '../components/jobs/InterviewPrepPanel';
 import { StatusTimeline } from '../components/jobs/StatusTimeline';
 import { FitScoreDonut } from '../components/jobs/FitScoreDonut';
 import { JobOutputEditor } from '../components/jobs/JobOutputEditor';
-import { TailorChangesPanel } from '../components/jobs/TailorChangesPanel';
 import { ExportModal } from '../components/jobs/ExportModal';
 import { CoverLetterExportModal } from '../components/jobs/CoverLetterExportModal';
 
@@ -59,7 +58,6 @@ export function JobDetailPage() {
   // Resume & Cover Letter tab state
   const [jobOutput, setJobOutput] = useState<JobOutput | null>(null);
   const [tailoring, setTailoring] = useState(false);
-  const [tailorPanelExpanded, setTailorPanelExpanded] = useState(false);
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false);
   const [coverLetterTone, setCoverLetterTone] = useState('Professional');
   const [exportModalOpen, setExportModalOpen] = useState(false);
@@ -138,7 +136,6 @@ export function JobDetailPage() {
     try {
       const updated = await tailorResume(job.id);
       setJobOutput(updated);
-      setTailorPanelExpanded(true);
       addToast('Resume tailored successfully!', 'success');
     } catch (e: any) {
       if (e?.response?.status === 403) {
@@ -456,15 +453,9 @@ export function JobDetailPage() {
                 <JobOutputEditor
                   jobId={job.id}
                   resumeJson={jobOutput.resumeJson}
+                  tailorChanges={jobOutput.tailorChanges ?? undefined}
                   onSaved={(updated) => setJobOutput((o) => o ? { ...o, resumeJson: updated } : o)}
                 />
-                {jobOutput.tailorChanges && (
-                  <TailorChangesPanel
-                    changes={jobOutput.tailorChanges}
-                    initiallyExpanded={tailorPanelExpanded}
-                    onCollapse={() => setTailorPanelExpanded(false)}
-                  />
-                )}
               </div>
             )}
           </div>

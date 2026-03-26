@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { Save, Plus, Trash2, Pencil, ChevronDown, ChevronUp } from 'lucide-react';
 import { patchJobOutput } from '../../api/jobs';
 import { useAppStore } from '../../store/useAppStore';
 import type { ResumeContent, ResumeExperience, ResumeEducation, ResumeCertification } from '../../types/resumeContent';
+import type { TailorChanges, BulletChange, SkillChange } from '../../types';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -12,10 +14,11 @@ import { RichTextEditor } from '../ui/RichTextEditor';
 interface Props {
   jobId: string;
   resumeJson: ResumeContent;
+  tailorChanges?: TailorChanges;
   onSaved?: (updated: ResumeContent) => void;
 }
 
-export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
+export function JobOutputEditor({ jobId, resumeJson, tailorChanges, onSaved }: Props) {
   const { addToast } = useAppStore();
   const [saving, setSaving] = useState(false);
 
@@ -63,18 +66,54 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
           )}
         />
       </EditSection>
+      {tailorChanges && tailorChanges.summary.original !== tailorChanges.summary.rewritten && (
+        <InlineSectionChange
+          title="Professional Summary"
+          subtext={tailorChanges.summary.sectionSummary}
+          before={tailorChanges.summary.original}
+          after={tailorChanges.summary.rewritten}
+        />
+      )}
 
       {/* Experience */}
       <EditSection title="Experience">
         <div className="space-y-2">
-          {expFields.map((exp, index) => (
-            <ExpItem
-              key={(exp as any).fieldId}
-              exp={exp as unknown as ResumeExperience}
-              onUpdate={(data) => updateExp(index, data)}
-              onDelete={() => removeExp(index)}
-            />
-          ))}
+          {expFields.map((exp, index) => {
+            const expChange = tailorChanges?.experiences.find(
+              (e) => e.index === index || (e.title === (exp as any).title && e.company === (exp as any).company)
+            );
+            return (
+              <div key={(exp as any).fieldId}>
+                <ExpItem
+                  exp={exp as unknown as ResumeExperience}
+                  onUpdate={(data) => updateExp(index, data)}
+                  onDelete={() => removeExp(index)}
+                />
+                {expChange && expChange.bulletChanges.some((b) => b.type !== 'unchanged') && (
+                  <InlineSectionChange
+                    title={expChange.title}
+                    subtitle={expChange.company}
+                    subtext={expChange.sectionSummary}
+                    before={
+                      <ul className="list-disc list-outside pl-4 space-y-1.5">
+                        {expChange.bulletChanges.filter((b) => b.original).map((b, i) => (
+                          <li key={b.original ?? i}>{b.original}</li>
+                        ))}
+                      </ul>
+                    }
+                    after={
+                      <ul className="list-disc list-outside pl-4 space-y-1.5">
+                        {expChange.bulletChanges.filter((b) => b.rewritten).map((b, i) => (
+                          <li key={b.rewritten ?? i}>{b.rewritten}</li>
+                        ))}
+                      </ul>
+                    }
+                    bulletChanges={expChange.bulletChanges}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
         <Button
           type="button"
@@ -152,6 +191,12 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
         </div>
         <SkillAdder onAdd={(name) => appendSkill({ name, level: 'INTERMEDIATE', category: null })} />
       </EditSection>
+      {tailorChanges && tailorChanges.skills.skillChanges.some((s) => s.type !== 'unchanged') && (
+        <InlineSkillsChange
+          subtext={tailorChanges.skills.sectionSummary}
+          skillChanges={tailorChanges.skills.skillChanges}
+        />
+      )}
 
       {/* Certifications */}
       <EditSection title="Certifications">
@@ -183,6 +228,113 @@ export function JobOutputEditor({ jobId, resumeJson, onSaved }: Props) {
         </Button>
       </div>
 
+    </div>
+  );
+}
+
+// ─── Inline change blocks ─────────────────────────────────────────────────────
+
+const BULLET_BADGE: Record<string, { label: string; className: string }> = {
+  reworded: { label: 'REWORDED', className: 'bg-blue-100 text-blue-700' },
+  added:    { label: 'ADDED',    className: 'bg-green-100 text-green-700' },
+  removed:  { label: 'REMOVED',  className: 'bg-red-100 text-red-600' },
+  combined: { label: 'COMBINED', className: 'bg-gray-100 text-gray-600' },
+};
+
+const SKILL_BADGE: Record<string, { label: string; className: string }> = {
+  added:     { label: 'ADDED',     className: 'bg-green-100 text-green-700' },
+  removed:   { label: 'REMOVED',   className: 'bg-red-100 text-red-600' },
+  reordered: { label: 'REORDERED', className: 'bg-blue-100 text-blue-700' },
+};
+
+function SideBySideCard({ before, after }: { before: ReactNode; after: ReactNode }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="text-[10px] font-bold text-red-600 uppercase tracking-widest mb-3">Before</div>
+        <div className="text-sm text-red-700 leading-relaxed">{before}</div>
+      </div>
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="text-[10px] font-bold text-green-600 uppercase tracking-widest mb-3">After</div>
+        <div className="text-sm text-green-700 leading-relaxed">{after}</div>
+      </div>
+    </div>
+  );
+}
+
+function InlineSectionChange({
+  title,
+  subtitle,
+  subtext,
+  before,
+  after,
+  bulletChanges,
+}: {
+  title: string;
+  subtitle?: string;
+  subtext: string;
+  before: ReactNode;
+  after: ReactNode;
+  bulletChanges?: BulletChange[];
+}) {
+  const visible = bulletChanges?.filter((b) => b.type !== 'unchanged') ?? [];
+  return (
+    <div className="flex flex-col gap-3 px-1 pt-3 pb-1">
+      <div>
+        <h3 className="text-base font-bold text-gray-900">{title}</h3>
+        {subtitle && <p className="text-sm text-gray-400">{subtitle}</p>}
+        <p className="text-sm text-gray-500 mt-1">{subtext}</p>
+      </div>
+      <SideBySideCard before={before} after={after} />
+      {visible.length > 0 && (
+        <div>
+          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Change Details</div>
+          <div className="flex flex-col gap-2">
+            {visible.map((b) => {
+              const badge = BULLET_BADGE[b.type];
+              if (!badge) return null;
+              return (
+                <div key={b.original ?? b.rewritten} className="flex items-start gap-2">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
+                    {badge.label}
+                  </span>
+                  <span className="text-xs text-gray-500 leading-relaxed">{b.reason}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InlineSkillsChange({ subtext, skillChanges }: { subtext: string; skillChanges: SkillChange[] }) {
+  const visible = skillChanges.filter((s) => s.type !== 'unchanged');
+  if (visible.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-3 px-1 pt-3 pb-1">
+      <div>
+        <h3 className="text-base font-bold text-gray-900">Skills</h3>
+        <p className="text-sm text-gray-500 mt-1">{subtext}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        {visible.map((s) => {
+          const badge = SKILL_BADGE[s.type];
+          if (!badge) return null;
+          return (
+            <div key={s.name} className="flex items-start gap-2">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded flex-shrink-0 mt-0.5 ${badge.className}`}>
+                {badge.label}
+              </span>
+              <div>
+                <span className="text-xs font-medium text-gray-700">{s.name}</span>
+                <span className="text-xs text-gray-400 ml-1">— {s.reason}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
