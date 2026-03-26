@@ -36,13 +36,20 @@ cp server/.env.example server/.env
 | `DATABASE_URL` | Yes | Pooled PostgreSQL URL (port 6543) |
 | `DIRECT_URL` | Yes | Direct PostgreSQL URL (port 5432) — migrations only |
 | `SESSION_SECRET` | Yes | 32+ char random string for user sessions |
-| `ADMIN_SESSION_SECRET` | Yes | 32+ char random string for admin sessions |
+| `ADMIN_SESSION_SECRET` | No | 32+ char random string for admin sessions |
 | `OPENAI_API_KEY` | Yes | Claude API key via OpenAI-compatible SDK |
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
 | `GOOGLE_CALLBACK_URL` | Yes | e.g. `http://localhost:3000/api/auth/google/callback` |
 | `CLIENT_URL` | Yes | Frontend CORS origin (default: `http://localhost:5173`) |
 | `ADMIN_URL` | No | Admin CORS origin (default: `http://localhost:5174`) |
+| `GITHUB_CLIENT_ID` | No | GitHub OAuth client ID |
+| `GITHUB_CLIENT_SECRET` | No | GitHub OAuth client secret |
+| `GITHUB_CALLBACK_URL` | No | e.g. `http://localhost:3000/api/auth/github/callback` |
+| `ADMIN_EMAILS` | No | Comma-separated list of emails allowed admin access |
+| `ADMIN_GOOGLE_CLIENT_ID` | No | Google OAuth client ID for admin panel |
+| `ADMIN_GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret for admin panel |
+| `ADMIN_GOOGLE_CALLBACK_URL` | No | Admin OAuth callback URL |
 | `PORT` | No | Server port (default: 3000) |
 | `NODE_ENV` | No | `development` or `production` |
 
@@ -95,8 +102,10 @@ server/src/
 │   ├── templates.ts      # 20 HTML resume template renderers
 │   ├── pdf.ts            # Puppeteer → PDF Buffer
 │   └── activityLog.ts    # Write to ActivityLog table
+├── types/
+│   └── express.d.ts          # Augments Express Request with req.user typing
 └── utils/
-    └── profileToContent.ts  # Profile DB row → resume contentJson
+    └── profileToContent.ts   # Profile DB row → resume contentJson
 ```
 
 ## API Reference
@@ -146,7 +155,13 @@ server/src/
 | GET | `/api/jobs/:id` | Get job (includes amendment history) |
 | PUT | `/api/jobs/:id` | Update job |
 | DELETE | `/api/jobs/:id` | Delete job |
-| PUT | `/api/jobs/:id/resume` | Link/unlink resume to job |
+| GET | `/api/jobs/:id/output` | Get job output (resumeJson, coverLetterText) |
+| PATCH | `/api/jobs/:id/output` | Save resumeJson and/or coverLetterText |
+| GET | `/api/jobs/:id/resume/pdf` | Download tailored resume as PDF |
+| GET | `/api/jobs/:id/resume/preview` | Get tailored resume as HTML preview |
+| GET | `/api/jobs/:id/cover-letter/pdf` | Download cover letter as PDF |
+| PATCH | `/api/jobs/:id/status-history/:historyId` | Update note on a status history entry |
+| DELETE | `/api/jobs/:id/status-history/:historyId` | Delete a status history entry |
 
 ### Job Statuses
 
@@ -162,10 +177,19 @@ server/src/
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/ai/tailor` | Tailor resume for a job — clones the source resume |
-| POST | `/api/ai/cover-letter` | Generate cover letter — **SSE streaming** |
-| POST | `/api/ai/improve-summary` | Improve profile summary |
-| POST | `/api/ai/sample-job` | Generate a sample job posting from profile |
+| POST | `/api/ai/tailor` | Tailor resume for a job — clones the source resume (limit: 1 per job) |
+| POST | `/api/ai/cover-letter` | Generate cover letter — **SSE streaming** (limit: 3 per job) |
+| POST | `/api/ai/improve-summary` | Improve profile summary for a target role |
+| POST | `/api/ai/generate-summary` | Generate a fresh profile summary (limit: 4 total) |
+| POST | `/api/ai/analyze-fit` | Analyze profile fit against a job description |
+| POST | `/api/ai/crawl-url` | Crawl a job posting URL and extract job info |
+| POST | `/api/ai/interview-categories` | Generate interview category suggestions for a job |
+| POST | `/api/ai/interview-questions` | Generate interview questions for selected categories |
+| POST | `/api/ai/interview-feedback` | Evaluate a user's interview answer and return feedback |
+| POST | `/api/ai/interview-sample-response` | Generate an AI sample response for an interview question |
+| POST | `/api/ai/sample-job` | Generate a sample job posting from profile (limit: 3 total) |
+| POST | `/api/ai/sample-titles` | Suggest job titles based on profile (not rate limited) |
+| GET | `/api/ai/sample-job-status` | Get sample job generation count/limit (not rate limited) |
 
 ### Templates
 
@@ -176,12 +200,18 @@ server/src/
 
 ### Interview Prep
 
+AI generation routes are in `ai.ts` (rate limited); data management routes are in `interviewPrep.ts`.
+
 | Method | Path | Description |
 |---|---|---|
-| POST | `/api/interview-prep/:jobId/generate` | Generate categories + questions |
-| GET | `/api/interview-prep/:jobId` | Get existing prep for a job |
-| POST | `/api/interview-prep/:jobId/answer` | Submit answer for feedback |
-| POST | `/api/interview-prep/:jobId/sample-response` | Generate AI sample response |
+| POST | `/api/ai/interview-categories` | Generate category suggestions for a job |
+| POST | `/api/ai/interview-questions` | Generate questions for selected categories; saves to DB |
+| POST | `/api/ai/interview-feedback` | Evaluate a user answer; saves feedback to DB |
+| POST | `/api/ai/interview-sample-response` | Generate AI sample response for a question; saves to DB |
+| GET | `/api/interview-prep/:jobId` | Get existing prep record for a job |
+| DELETE | `/api/interview-prep/:jobId` | Delete prep record for a job |
+| PATCH | `/api/interview-prep/:jobId/clear-answer` | Clear user answer + feedback for a question |
+| PATCH | `/api/interview-prep/:jobId/add-question` | Add a custom question to a category |
 
 ### Tours
 
@@ -195,8 +225,10 @@ Tour IDs: `jobs-list`, `job-detail`, `job-prep`
 
 | Method | Path | Description |
 |---|---|---|
+| GET | `/api/admin/auth/google` | Start admin Google OAuth flow |
+| GET | `/api/admin/auth/google/callback` | Admin Google OAuth callback |
 | GET | `/api/admin/auth/me` | Current admin session |
-| GET | `/api/admin/auth/google` | Admin Google OAuth |
+| POST | `/api/admin/auth/logout` | End admin session |
 | GET | `/api/admin/stats` | Aggregate counts |
 | GET | `/api/admin/users` | Paginated user list |
 | GET | `/api/admin/users/:id` | User detail |
