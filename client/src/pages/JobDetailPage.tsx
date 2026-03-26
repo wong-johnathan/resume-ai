@@ -409,7 +409,6 @@ export function JobDetailPage() {
               <h2 className="font-semibold text-gray-900 text-sm">Resume</h2>
               {jobOutput?.resumeJson && (
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-400">Version {jobOutput.resumeVersion} / 1</span>
                   <Button variant="secondary" size="sm" onClick={() => setExportModalOpen(true)}>
                     <Download size={13} /> Download
                   </Button>
