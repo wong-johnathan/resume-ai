@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, FileText, TrendingUp, Plus } from 'lucide-react';
+import { Briefcase, FileText, TrendingUp, Plus, Zap } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getJobs } from '../api/jobs';
 import { getResumes } from '../api/resumes';
@@ -30,6 +30,64 @@ function StatCardSkeleton() {
         <Skeleton className="w-9 h-9 rounded-lg" />
       </div>
       <Skeleton className="h-8 w-12" />
+    </div>
+  );
+}
+
+function CreditBalanceCard() {
+  const { user } = useAuth();
+  const sub = user?.subscription;
+  const isPro = sub?.status === 'PRO';
+  const creditPct = Math.round(((sub?.creditsRemaining ?? 50) / (sub?.creditsTotal ?? 50)) * 100);
+
+  return (
+    <div className="bg-white rounded-xl border shadow-sm mb-6">
+      <div className="flex items-center justify-between px-5 py-4 border-b">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center">
+            <Zap size={15} className="text-amber-600" />
+          </div>
+          <h2 className="font-semibold text-gray-900">AI Credits</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+              isPro
+                ? 'bg-blue-100 text-blue-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {isPro ? 'Pro' : 'Trial'}
+          </span>
+          <Link to="/billing" className="text-sm text-blue-600 hover:underline">
+            View Billing
+          </Link>
+        </div>
+      </div>
+      <div className="px-5 py-4 space-y-3">
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-sm text-gray-600">Credit balance</span>
+            <span className="text-sm font-semibold text-gray-900">
+              {sub?.creditsRemaining ?? 50} / {sub?.creditsTotal ?? 50}
+            </span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-400 rounded-full transition-all"
+              style={{ width: `${creditPct}%` }}
+            />
+          </div>
+        </div>
+        {!isPro && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Trial jobs used</span>
+            <span className="font-medium text-gray-700">
+              {sub?.jobsUsed ?? 0} / {sub?.trialLimit ?? 3}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -76,7 +134,9 @@ export function DashboardPage() {
         )}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <CreditBalanceCard />
+
+      <div className="grid md:grid-cols-2 gap-6 mt-6">
         <div className="bg-white rounded-xl border shadow-sm">
           <div className="flex items-center justify-between px-5 py-4 border-b">
             <h2 className="font-semibold text-gray-900">Recent Applications</h2>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../api/admin';
+import { adminApi, adjustCredits } from '../api/admin';
 import { ActivityTimeline } from '../components/ActivityTimeline';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Trash2, ArrowLeft } from 'lucide-react';
@@ -12,8 +12,10 @@ export default function UserDetail() {
   const qc = useQueryClient();
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(false);
   const [confirmDeleteResume, setConfirmDeleteResume] = useState<string | null>(null);
+  const [creditInput, setCreditInput] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin-user', userId],
     queryFn: () => adminApi.getUser(userId!),
     enabled: !!userId,
@@ -31,6 +33,21 @@ export default function UserDetail() {
     mutationFn: (resumeId: string) => adminApi.deleteResume(resumeId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-user', userId] }),
   });
+
+  async function handleAdjustCredits() {
+    const val = parseInt(creditInput);
+    if (isNaN(val) || val < 0 || val > 10000) return;
+    setAdjusting(true);
+    try {
+      await adjustCredits(userId!, val);
+      setCreditInput('');
+      refetch();
+    } catch {
+      // silent fail — admin panel
+    } finally {
+      setAdjusting(false);
+    }
+  }
 
   if (isLoading) return <p className="text-gray-400">Loading...</p>;
   if (!data) return <p className="text-red-400">User not found.</p>;
@@ -66,6 +83,24 @@ export default function UserDetail() {
             {subscription.currentPeriodEnd && (
               <span>Renews: <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong></span>
             )}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              max="10000"
+              placeholder="Set credits"
+              value={creditInput}
+              onChange={(e) => setCreditInput(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-sm w-28"
+            />
+            <button
+              onClick={handleAdjustCredits}
+              disabled={adjusting || !creditInput}
+              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {adjusting ? 'Saving…' : 'Set Credits'}
+            </button>
           </div>
         </div>
       )}
