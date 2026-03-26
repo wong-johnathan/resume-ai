@@ -27,6 +27,7 @@ model User {
   jobStatuses     UserJobStatus[]
   interviewPreps  InterviewPrep[]
   jobOutputs      JobOutput[]
+  subscription    Subscription?
 
   @@unique([provider, providerId])
 }
@@ -257,4 +258,31 @@ enum ActivityAction {
   INTERVIEW_PREP_GENERATED
   PROFILE_UPDATED
   ACCOUNT_DELETED
+  SUBSCRIPTION_UPGRADED
+}
+
+// ─── SUBSCRIPTION ─────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               SubscriptionStatus @default(TRIAL)
+  creditsRemaining     Int                @default(50)
+  creditsTotal         Int                @default(50)
+  creditsResetAt       DateTime?
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  PRO
+  EXPIRED
 }
