@@ -49,8 +49,12 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
       const { categories } = await generateCategories(jobId);
       setSuggestedCategories(categories);
       setStep('selecting');
-    } catch {
-      addToast('Failed to generate categories. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to generate categories. Please try again.', 'error');
+      }
     } finally {
       setLoadingCategories(false);
     }
@@ -62,8 +66,12 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
       await generateQuestions(jobId, selections);
       await queryClient.invalidateQueries({ queryKey: ['interviewPrep', jobId] });
       setStep('done');
-    } catch {
-      addToast('Failed to generate questions. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to generate questions. Please try again.', 'error');
+      }
     } finally {
       setGeneratingQuestions(false);
     }

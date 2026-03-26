@@ -47,8 +47,12 @@ export function InterviewAnswerPanel({
       });
       onAnswerSaved(feedback, draft.trim());
       setDraft('');
-    } catch {
-      addToast('Failed to evaluate answer. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to evaluate answer. Please try again.', 'error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -76,8 +80,12 @@ export function InterviewAnswerPanel({
         question: question.question,
       });
       onSampleResponseGenerated(sampleResponse);
-    } catch {
-      addToast('Failed to generate sample response. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to generate sample response. Please try again.', 'error');
+      }
     } finally {
       setGeneratingSample(false);
     }
