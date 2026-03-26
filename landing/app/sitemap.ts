@@ -10,5 +10,17 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly',
       priority: 1,
     },
+    {
+      url: 'https://resume.johnathanwwh.com/terms',
+      lastModified: new Date('2026-03-26'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: 'https://resume.johnathanwwh.com/privacy',
+      lastModified: new Date('2026-03-26'),
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
   ]
 }
