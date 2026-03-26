@@ -9,9 +9,27 @@ const router = Router();
 
 // ─── Session info ────────────────────────────────────────────────────────────
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Unauthorized' });
-  res.json(req.user);
+  const userId = getUser(req).id;
+  const [subscription, jobsUsed] = await Promise.all([
+    prisma.subscription.findUnique({ where: { userId } }),
+    prisma.jobApplication.count({ where: { userId } }),
+  ]);
+
+  res.json({
+    ...getUser(req),
+    subscription: {
+      status: subscription?.status ?? 'TRIAL',
+      creditsRemaining: subscription?.creditsRemaining ?? 50,
+      creditsTotal: subscription?.creditsTotal ?? 50,
+      creditsResetAt: subscription?.creditsResetAt ?? null,
+      jobsUsed,
+      trialLimit: 3,
+      currentPeriodEnd: subscription?.currentPeriodEnd ?? null,
+      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+    },
+  });
 });
 
 router.post('/logout', (req, res, next) => {
