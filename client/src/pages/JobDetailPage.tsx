@@ -437,7 +437,7 @@ export function JobDetailPage() {
             ) : (
               <div className="space-y-3">
                 <div className="flex gap-2">
-                  <div title={jobOutput.resumeVersion >= 1 ? 'Each job can only be tailored once' : undefined}>
+                  {jobOutput.resumeVersion ===0 && <div title={jobOutput.resumeVersion >= 1 ? 'Each job can only be tailored once' : undefined}>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -447,7 +447,7 @@ export function JobDetailPage() {
                     >
                       <Sparkles size={13} /> {jobOutput.resumeVersion >= 1 ? 'Tailor limit reached' : 'Re-tailor'}
                     </Button>
-                  </div>
+                  </div>}
                 </div>
                 <JobOutputEditor
                   jobId={job.id}
