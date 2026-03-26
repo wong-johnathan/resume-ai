@@ -3,6 +3,7 @@ import { CheckCircle, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react';
 import { InterviewQuestion, InterviewFeedback } from '../../types';
 import { submitAnswer, clearAnswer, generateSampleResponse } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
+import CreditCost from '../ui/CreditCost';
 
 interface Props {
   jobId: string;
@@ -46,8 +47,12 @@ export function InterviewAnswerPanel({
       });
       onAnswerSaved(feedback, draft.trim());
       setDraft('');
-    } catch {
-      addToast('Failed to evaluate answer. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to evaluate answer. Please try again.', 'error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -75,8 +80,12 @@ export function InterviewAnswerPanel({
         question: question.question,
       });
       onSampleResponseGenerated(sampleResponse);
-    } catch {
-      addToast('Failed to generate sample response. Please try again.', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
+      } else {
+        addToast('Failed to generate sample response. Please try again.', 'error');
+      }
     } finally {
       setGeneratingSample(false);
     }
@@ -93,13 +102,16 @@ export function InterviewAnswerPanel({
   ) : null;
 
   const generateSampleButton = hasDescription && !question.sampleResponse ? (
-    <button
-      onClick={handleGenerateSample}
-      disabled={generatingSample}
-      className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
-    >
-      {generatingSample ? 'Generating…' : 'Generate sample response'}
-    </button>
+    <span className="inline-flex items-center gap-2">
+      <button
+        onClick={handleGenerateSample}
+        disabled={generatingSample}
+        className="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+      >
+        {generatingSample ? 'Generating…' : 'Generate sample response'}
+      </button>
+      <CreditCost cost={2} tooltip />
+    </span>
   ) : null;
 
   if (hasFeedback && question.feedback) {
@@ -194,6 +206,7 @@ export function InterviewAnswerPanel({
         >
           {submitting ? 'Getting feedback…' : 'Submit for Feedback'}
         </button>
+        <CreditCost cost={2} tooltip />
         {generateSampleButton}
       </div>
       {sampleResponseCard}

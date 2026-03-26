@@ -6,6 +6,7 @@ import { getJobs, createJob, updateJob, deleteJob } from '../api/jobs';
 import { getJobStatuses, createJobStatus, deleteJobStatus, reorderJobStatuses } from '../api/jobStatuses';
 import { tailorResume, streamCoverLetter, analyzeFit, getSampleJobStatus } from '../api/ai';
 import { SampleJobModal } from '../components/jobs/SampleJobModal';
+import { UpgradeModal } from '../components/ui/UpgradeModal';
 import { JobApplication, JobStatus } from '../types';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
@@ -198,6 +199,7 @@ export function JobTrackerPage() {
   const [sampleOpen, setSampleOpen] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const { addToast } = useAppStore();
   const navigate = useNavigate();
 
@@ -269,8 +271,12 @@ export function JobTrackerPage() {
     try {
       setProcessingLabel('Creating job application…');
       job = await createJob({ ...jobDetails } as any);
-    } catch (e: any) {
-      addToast(e?.response?.data?.error ?? 'Something went wrong', 'error');
+    } catch (err: any) {
+      if (err?.response?.status === 402) {
+        setShowUpgrade(true);
+      } else {
+        addToast('Failed to create job', 'error');
+      }
       setProcessing(false);
       setProcessingLabel('');
       return;
@@ -537,6 +543,9 @@ export function JobTrackerPage() {
         onCreated={(job) => { setSampleUsed((n) => n + 1); navigate(`/jobs/${job.id}`); }}
         initialUsed={sampleUsed}
       />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal isOpen={showUpgrade} onClose={() => setShowUpgrade(false)} />
 
       {/* Add Job Modal */}
       <Modal open={addOpen} onClose={() => { if (!processing) { abortRef.current?.(); setAddOpen(false); } }} title="Add Job Application" size="xl">

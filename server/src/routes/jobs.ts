@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
+import { requireSubscription } from '../middleware/requireSubscription';
 import { logActivity, ActivityAction } from '../services/activityLog';
 import { profileToResumeContent } from '../utils/profileToContent';
 import { renderTemplate, coverLetterTemplate } from '../services/templates';
@@ -49,7 +50,7 @@ router.get('/', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/', validateBody(createJobSchema), async (req, res, next) => {
+router.post('/', requireSubscription, validateBody(createJobSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
     let job: any;

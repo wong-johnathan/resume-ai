@@ -35,7 +35,7 @@ export default function UserDetail() {
   if (isLoading) return <p className="text-gray-400">Loading...</p>;
   if (!data) return <p className="text-red-400">User not found.</p>;
 
-  const { user, resumes, jobs, aiAmendmentCount, aiUsage, activityLog } = data;
+  const { user, resumes, jobs, aiAmendmentCount, aiUsage, activityLog, subscription } = data;
   const profile = user.profile;
 
   return (
@@ -54,6 +54,21 @@ export default function UserDetail() {
           <p>Last active: {user.lastActiveAt ? new Date(user.lastActiveAt).toLocaleDateString() : 'Never'}</p>
         </div>
       </section>
+
+      {/* Subscription */}
+      {subscription && (
+        <div className="bg-white rounded border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Subscription</h3>
+          <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
+            <span>Status: <strong>{subscription.status}</strong></span>
+            <span>Credits: <strong>{subscription.creditsRemaining} / {subscription.creditsTotal}</strong></span>
+            <span>Jobs used: <strong>{subscription.jobsUsed}</strong></span>
+            {subscription.currentPeriodEnd && (
+              <span>Renews: <strong>{new Date(subscription.currentPeriodEnd).toLocaleDateString()}</strong></span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* AI Usage */}
       <section>

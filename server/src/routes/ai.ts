@@ -4,6 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { validateBody } from '../middleware/validateBody';
+import { requireCredits } from '../middleware/requireCredits';
 import { tailorResume, generateCoverLetter, improveSummary, generateSummary, extractJobInfo, analyzeJobFit, generateInterviewCategories, generateInterviewQuestions, evaluateInterviewAnswer, generateSampleResponse, generateSampleJobTitles, generateSampleJob, InterviewCategory, InterviewFeedback } from '../services/claude';
 import { profileToResumeContent } from '../utils/profileToContent';
 import { logActivity, ActivityAction } from '../services/activityLog';
@@ -62,7 +63,7 @@ const tailorSchema = z.object({
   jobId: z.string(),
 });
 
-router.post('/tailor', validateBody(tailorSchema), async (req, res, next) => {
+router.post('/tailor', requireCredits(5), validateBody(tailorSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
     const { jobId } = req.body;
@@ -110,7 +111,7 @@ const coverLetterSchema = z.object({
   tone: z.enum(['Professional', 'Conversational', 'Enthusiastic']).default('Professional'),
 });
 
-router.post('/cover-letter', validateBody(coverLetterSchema), async (req, res, next) => {
+router.post('/cover-letter', requireCredits(3), validateBody(coverLetterSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
     const { jobId, tone } = req.body;
@@ -275,7 +276,7 @@ const summarySchema = z.object({
   targetRole: z.string().min(2),
 });
 
-router.post('/improve-summary', validateBody(summarySchema), async (req, res, next) => {
+router.post('/improve-summary', requireCredits(1), validateBody(summarySchema), async (req, res, next) => {
   try {
     const improved = await improveSummary(req.body.currentSummary, req.body.targetRole);
     logActivity(getUser(req).id, ActivityAction.AI_SUMMARY).catch(() => {});
@@ -325,6 +326,7 @@ router.post(
 
 router.post(
   '/interview-questions',
+  requireCredits(5),
   validateBody(
     z.object({
       jobId: z.string(),
@@ -387,6 +389,7 @@ router.post(
 
 router.post(
   '/interview-feedback',
+  requireCredits(2),
   validateBody(
     z.object({
       jobId: z.string(),
@@ -448,6 +451,7 @@ router.post(
 
 router.post(
   '/interview-sample-response',
+  requireCredits(2),
   validateBody(
     z.object({
       jobId: z.string(),
@@ -525,7 +529,7 @@ const sampleJobSchema = z.object({
   jobTitle: z.string().min(2),
 });
 
-router.post('/sample-job', validateBody(sampleJobSchema), async (req, res, next) => {
+router.post('/sample-job', requireCredits(1), validateBody(sampleJobSchema), async (req, res, next) => {
   try {
     const userId = getUser(req).id;
 

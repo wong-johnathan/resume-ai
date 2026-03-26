@@ -44,7 +44,13 @@ export function streamCoverLetter(
     body: JSON.stringify({ jobId, tone }),
     signal: controller.signal,
   }).then(async (res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const err: any = new Error(`HTTP ${res.status}`);
+      err.status = res.status;
+      err.data = body;
+      throw err;
+    }
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';

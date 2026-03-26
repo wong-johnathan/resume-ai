@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, User, Briefcase, Layout, LogOut } from 'lucide-react';
+import { LayoutDashboard, User, Briefcase, Layout, LogOut, CreditCard, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { logout } from '../../api/auth';
 
@@ -8,6 +8,7 @@ const links = [
   { to: '/profile', icon: User, label: 'My Profile' },
   { to: '/templates', icon: Layout, label: 'Templates' },
   { to: '/jobs', icon: Briefcase, label: 'Job Tracker' },
+  { to: '/billing', icon: CreditCard, label: 'Billing' },
 ];
 
 interface Props {
@@ -17,6 +18,8 @@ interface Props {
 
 export function Sidebar({ open, onClose }: Props) {
   const { user } = useAuth();
+  const sub = user?.subscription;
+  const isPro = sub?.status === 'PRO';
 
   const handleLogout = async () => {
     await logout();
@@ -67,6 +70,12 @@ export function Sidebar({ open, onClose }: Props) {
             </div>
           </div>
         )}
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 px-3 py-1">
+          <Zap className="w-3 h-3 text-amber-500" />
+          <span>
+            {isPro ? 'Pro' : 'Trial'} · {sub?.creditsRemaining ?? 50} credits
+          </span>
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"

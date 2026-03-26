@@ -22,6 +22,7 @@ import { FitScoreDonut } from '../components/jobs/FitScoreDonut';
 import { JobOutputEditor } from '../components/jobs/JobOutputEditor';
 import { ExportModal } from '../components/jobs/ExportModal';
 import { CoverLetterExportModal } from '../components/jobs/CoverLetterExportModal';
+import CreditCost from '../components/ui/CreditCost';
 
 const TABS = [
   { id: 'info',   label: 'Job Info & Fit' },
@@ -138,7 +139,9 @@ export function JobDetailPage() {
       setJobOutput(updated);
       addToast('Resume tailored successfully!', 'success');
     } catch (e: any) {
-      if (e?.response?.status === 403) {
+      if (e?.response?.status === 402 && e.response.data?.error === 'insufficient_credits') {
+        addToast(`Not enough credits. You need ${e.response.data.creditsRequired}, have ${e.response.data.creditsRemaining}.`, 'error');
+      } else if (e?.response?.status === 403) {
         addToast('Resume tailoring is limited to once per job.', 'error');
       } else {
         addToast(e?.response?.data?.error ?? 'Tailoring failed', 'error');
@@ -166,9 +169,13 @@ export function JobDetailPage() {
         } catch { /* keep local state */ }
         addToast('Cover letter generated!', 'success');
       },
-      () => {
+      (err: any) => {
         setGeneratingCoverLetter(false);
-        addToast('Cover letter generation failed', 'error');
+        if (err?.status === 402 && err.data?.error === 'insufficient_credits') {
+          addToast(`Not enough credits. You need ${err.data.creditsRequired}, have ${err.data.creditsRemaining}.`, 'error');
+        } else {
+          addToast('Cover letter generation failed', 'error');
+        }
       }
     );
   };
@@ -418,10 +425,11 @@ export function JobDetailPage() {
 
             {!jobOutput?.resumeJson ? (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Button size="sm" onClick={handleTailor} loading={tailoring} disabled={!job.description}>
                     <Sparkles size={13} /> Generate Tailored Resume
                   </Button>
+                  <CreditCost cost={5} tooltip />
                   <Button
                     variant="secondary"
                     size="sm"
@@ -481,14 +489,17 @@ export function JobDetailPage() {
                   value={coverLetterTone}
                   onChange={(e) => setCoverLetterTone(e.target.value)}
                 />
-                <Button
-                  size="sm"
-                  onClick={handleGenerateCoverLetter}
-                  loading={generatingCoverLetter}
-                  disabled={!job.description}
-                >
-                  <Sparkles size={13} /> Generate Cover Letter
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleGenerateCoverLetter}
+                    loading={generatingCoverLetter}
+                    disabled={!job.description}
+                  >
+                    <Sparkles size={13} /> Generate Cover Letter
+                  </Button>
+                  <CreditCost cost={3} tooltip />
+                </div>
                 {generatingCoverLetter && localCoverLetter && (
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
                     {localCoverLetter}
