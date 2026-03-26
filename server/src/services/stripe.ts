@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
-import { env } from '../config/env.js';
-import { prisma } from '../config/prisma.js';
+import { env } from '../config/env';
+import { prisma } from '../config/prisma';
 
 export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-02-24.acacia' as any,
