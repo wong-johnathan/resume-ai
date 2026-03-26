@@ -2,6 +2,15 @@
 
 An AI-powered resume builder and job application assistant. Build resumes from a structured profile, choose from 20 professionally designed templates, export PDFs, track job applications with a status table, and use Claude AI to tailor resumes and generate cover letters for specific job postings.
 
+## Packages
+
+| Package | Description | README |
+|---|---|---|
+| `server/` | Express + TypeScript API — all `/api` routes, Prisma, AI, PDF generation | [server/README.md](./server/README.md) |
+| `client/` | Main user-facing React SPA (Vite, React 18, TailwindCSS) | [client/README.md](./client/README.md) |
+| `admin/` | Internal read-only admin panel (Vite, React 18) | [admin/README.md](./admin/README.md) |
+| `landing/` | Static marketing site (Next.js, Framer Motion) | [landing/README.md](./landing/README.md) |
+
 ## Features
 
 ### Profile & Onboarding
@@ -46,6 +55,8 @@ An AI-powered resume builder and job application assistant. Build resumes from a
 | AI | Claude via OpenAI-compatible SDK (`OPENAI_API_KEY`) |
 | PDF | Puppeteer + headless Chromium |
 | Hosting | Vercel (frontend) + Railway (backend) + Supabase (database) |
+| Admin panel | React 18 + TypeScript, Vite, TanStack Query |
+| Landing page | Next.js App Router, React 19, Framer Motion |
 
 ## Getting Started
 
@@ -100,6 +111,12 @@ npm run dev:server
 # Run only the client
 npm run dev:client
 
+# Run only the admin panel
+npm run dev:admin
+
+# Run only the landing page
+npm run dev:landing
+
 # Build both packages
 npm run build
 
@@ -110,26 +127,34 @@ npm run db:studio      # open Prisma Studio
 
 ## Architecture
 
-This is an NPM workspaces monorepo with two packages: `client/` and `server/`.
+This is an NPM workspaces monorepo with four packages: `server/`, `client/`, `admin/`, and `landing/`.
 
 ```
 resume-app/
-├── client/               # Vite + React + TypeScript (port 5173)
+├── server/               # Express + TypeScript API (port 3000)
+│   ├── prisma/
+│   │   └── schema.prisma
+│   └── src/
+│       ├── config/       # env, passport, prisma singleton
+│       ├── middleware/   # requireAuth, validateBody, errorHandler
+│       ├── routes/       # auth, profile, resumes, jobs, ai, templates, admin/
+│       └── services/     # claude.ts, pdf.ts, templates.ts
+├── client/               # Main React SPA (port 5173)
 │   └── src/
 │       ├── api/          # Axios wrappers per domain
-│       ├── components/   # UI primitives + layout
-│       ├── context/      # AuthContext
+│       ├── components/   # UI primitives + layout + jobs + tours
+│       ├── context/      # AuthContext, TourContext
 │       ├── pages/        # Route-level components
 │       ├── store/        # Zustand store
-│       └── types/        # Shared TypeScript interfaces
-└── server/               # Express + TypeScript (port 3000)
-    ├── prisma/
-    │   └── schema.prisma
-    └── src/
-        ├── config/       # env, passport, prisma singleton
-        ├── middleware/   # requireAuth, validateBody, errorHandler
-        ├── routes/       # auth, profile, resumes, jobs, job-statuses, ai, templates
-        └── services/     # claude.ts, pdf.ts, templates.ts
+│       └── tours/        # Onboarding tour configs
+├── admin/                # Internal admin panel (port 5174)
+│   └── src/
+│       ├── api/          # Admin API wrappers
+│       ├── context/      # AdminAuthContext
+│       └── pages/        # Dashboard, Users, Logs, Resumes
+└── landing/              # Static marketing site (port 3001)
+    ├── app/              # Next.js App Router
+    └── components/       # Section components
 ```
 
 ### Key Data Flows
@@ -218,6 +243,15 @@ Puppeteer cannot run on Vercel's serverless runtime (size + timeout limits), whi
    }
    ```
 4. Update `CLIENT_URL` in Railway to your Vercel URL
+
+### Deploy to Vercel (Landing Page)
+
+The landing page is a separate static site, also deployed to Vercel:
+
+1. Connect your GitHub repo at [vercel.com](https://vercel.com)
+2. Set **Root Directory** to `landing`, Framework: **Next.js**
+3. No environment variables required — it's fully static
+4. Vercel will run `next build` which produces a static export in `out/`
 
 ### Google OAuth
 
