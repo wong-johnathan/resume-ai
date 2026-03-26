@@ -29,7 +29,7 @@ export interface UserDetail {
   aiAmendmentCount: number;
   aiUsage: { tailor: number; coverLetter: number; interviewPrep: number; summary: number };
   activityLog: ActivityLogEntry[];
-  subscription?: {
+  subscription: {
     status: 'TRIAL' | 'PRO' | 'EXPIRED';
     creditsRemaining: number;
     creditsTotal: number;
