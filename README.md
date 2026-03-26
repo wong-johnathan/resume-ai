@@ -26,7 +26,7 @@ An AI-powered resume builder and job application assistant. Build resumes from a
 - **Resume cloning for tailoring** — original resumes are never mutated; AI creates a separate tailored clone
 
 ### AI Features (Claude)
-- **AI resume tailoring** — rewrites summary, experience bullets, and reorders skills to match a job description; max 3 per job posting
+- **AI resume tailoring** — rewrites summary, experience bullets, and reorders skills to match a job description; max 1 per job posting
 - **AI cover letter generation** — real-time SSE streaming in your choice of tone (Professional, Conversational, Enthusiastic)
 - **AI summary improvement** — refine your profile summary for a target role
 - **Amendment history** — every AI action per job is logged with timestamps and expandable details
@@ -102,7 +102,7 @@ PORT=3000
 ### Development
 
 ```bash
-# Start both client (port 5173) and server (port 3000)
+# Start all services (server, client, admin, landing)
 npm run dev
 
 # Run only the server
@@ -167,7 +167,7 @@ resume-app/
 
 **Job statuses:** Fully user-defined via `UserJobStatus` table. Status options in the job table are driven by these custom labels.
 
-**AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `AiAmendment`. Max 3 amendments per job — enforced on both server (HTTP 403) and client (buttons disabled).
+**AI amendment tracking:** Each AI action (resume tailor or cover letter) per job is recorded in `AiAmendment`. Max 1 amendment per job — enforced on both server (HTTP 403) and client (buttons disabled).
 
 ## API Reference
 
@@ -251,7 +251,7 @@ The landing page is a separate static site, also deployed to Vercel:
 1. Connect your GitHub repo at [vercel.com](https://vercel.com)
 2. Set **Root Directory** to `landing`, Framework: **Next.js**
 3. No environment variables required — it's fully static
-4. Vercel will run `next build` which produces a static export in `out/`
+4. The `output: 'export'` config in `next.config.ts` produces a static export, which Vercel deploys automatically
 
 ### Google OAuth
 
