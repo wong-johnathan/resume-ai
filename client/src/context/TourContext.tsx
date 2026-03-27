@@ -65,6 +65,10 @@ export function TourProvider({ children }: { children: ReactNode }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tours'] }),
   });
 
+  // Stable ref so endTour doesn't depend on the completeMutation object (which changes every render)
+  const completeMutateRef = useRef(completeMutation.mutate);
+  completeMutateRef.current = completeMutation.mutate;
+
   const [activeTourId, setActiveTourId] = useState<TourId | null>(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -96,12 +100,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
       measureTimeoutRef.current = null;
     }
     if (activeTourId) {
-      completeMutation.mutate(activeTourId);
+      completeMutateRef.current(activeTourId);
     }
     setActiveTourId(null);
     setActiveStepIndex(0);
     setTargetRect(null);
-  }, [activeTourId, completeMutation]);
+  }, [activeTourId]);
 
   const measureTarget = useCallback((selector: string) => {
     measureAttempts.current = 0;
@@ -139,6 +143,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!activeStep) return;
     measureTarget(activeStep.selector);
+    return () => {
+      // Cancel any pending retry timeout when step/measureTarget changes
+      if (measureTimeoutRef.current !== null) {
+        clearTimeout(measureTimeoutRef.current);
+        measureTimeoutRef.current = null;
+      }
+      measureAttempts.current = 0;
+    };
   }, [activeStep, measureTarget]);
 
   // Set up MutationObserver for auto-advance steps (prep tour)
