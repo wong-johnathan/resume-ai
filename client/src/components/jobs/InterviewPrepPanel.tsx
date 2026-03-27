@@ -49,6 +49,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
       const { categories } = await generateCategories(jobId);
       setSuggestedCategories(categories);
       setStep('selecting');
+      queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
         addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
@@ -65,6 +66,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
     try {
       await generateQuestions(jobId, selections);
       await queryClient.invalidateQueries({ queryKey: ['interviewPrep', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
       setStep('done');
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {

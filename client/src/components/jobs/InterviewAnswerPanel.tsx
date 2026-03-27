@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CheckCircle, AlertCircle, RefreshCw, Lightbulb } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { InterviewQuestion, InterviewFeedback } from '../../types';
 import { submitAnswer, clearAnswer, generateSampleResponse } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
@@ -27,6 +28,7 @@ export function InterviewAnswerPanel({
   onSampleResponseGenerated,
 }: Props) {
   const addToast = useAppStore((s) => s.addToast);
+  const queryClient = useQueryClient();
   const [draft, setDraft] = useState(question.userAnswer ?? '');
   const [submitting, setSubmitting] = useState(false);
   const [clearing, setClearing] = useState(false);
@@ -47,6 +49,7 @@ export function InterviewAnswerPanel({
       });
       onAnswerSaved(feedback, draft.trim());
       setDraft('');
+      queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
         addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
@@ -80,6 +83,7 @@ export function InterviewAnswerPanel({
         question: question.question,
       });
       onSampleResponseGenerated(sampleResponse);
+      queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
         addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
