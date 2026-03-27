@@ -29,7 +29,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
     queryFn: () => getInterviewPrep(jobId),
   });
 
-  useTour('job-prep'); // auto-starts tour on first visit
+  useTour('job-prep', !isLoading); // auto-starts tour on first visit
 
   const [step, setStep] = useState<Step>('idle');
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);

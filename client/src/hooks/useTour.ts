@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useTourContext } from '../context/TourContext';
 import type { TourId } from '../api/tours';
 
-export function useTour(tourId: TourId) {
+export function useTour(tourId: TourId, isReady: boolean = true) {
   const ctx = useTourContext();
   const { shouldAutoStart, startTour } = ctx;
   const startedRef = useRef(false);
@@ -10,11 +10,11 @@ export function useTour(tourId: TourId) {
   useEffect(() => {
     // Guard against React StrictMode double-fire
     if (startedRef.current) return;
-    if (shouldAutoStart(tourId)) {
+    if (isReady && shouldAutoStart(tourId)) {
       startedRef.current = true;
       startTour(tourId);
     }
-  }, [shouldAutoStart, tourId, startTour]);
+  }, [isReady, shouldAutoStart, tourId, startTour]);
 
   return {
     ...ctx,
