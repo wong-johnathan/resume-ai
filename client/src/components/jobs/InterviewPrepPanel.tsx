@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Briefcase } from 'lucide-react';
 import { InterviewCategorySelector } from './InterviewCategorySelector';
@@ -31,24 +31,24 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
 
   useTour('job-prep', !isLoading); // auto-starts tour on first visit
 
-  const [step, setStep] = useState<Step>('idle');
+  const [selecting, setSelecting] = useState(false);
   const [suggestedCategories, setSuggestedCategories] = useState<string[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [generatingQuestions, setGeneratingQuestions] = useState(false);
 
-  // Sync step with loaded data
-  useEffect(() => {
-    if (existingPrep && existingPrep.categories?.length > 0) {
-      setStep('done');
-    }
-  }, [existingPrep]);
+  // Derive step from server data so refreshing the page always restores the correct state
+  const step = useMemo<Step>(() => {
+    if (!isLoading && existingPrep && existingPrep.categories?.length > 0) return 'done';
+    if (selecting) return 'selecting';
+    return 'idle';
+  }, [isLoading, existingPrep, selecting]);
 
   const handleStartPrep = async () => {
     setLoadingCategories(true);
     try {
       const { categories } = await generateCategories(jobId);
       setSuggestedCategories(categories);
-      setStep('selecting');
+      setSelecting(true);
       queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
@@ -67,7 +67,7 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
       await generateQuestions(jobId, selections);
       await queryClient.invalidateQueries({ queryKey: ['interviewPrep', jobId] });
       queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
-      setStep('done');
+      setSelecting(false);
     } catch (err: any) {
       if (err?.response?.status === 402 && err.response.data?.error === 'insufficient_credits') {
         addToast(`Not enough credits. You need ${err.response.data.creditsRequired}, have ${err.response.data.creditsRemaining}.`, 'error');
