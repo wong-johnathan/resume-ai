@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Sparkles, FileText, ExternalLink, Pencil,
@@ -37,6 +38,7 @@ export function JobDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addToast } = useAppStore();
+  const queryClient = useQueryClient();
 
   const validTabIds = TABS.map((t) => t.id);
   const rawTab = searchParams.get('tab') ?? 'info';
@@ -65,7 +67,7 @@ export function JobDetailPage() {
   const [coverLetterExportOpen, setCoverLetterExportOpen] = useState(false);
   const [localCoverLetter, setLocalCoverLetter] = useState('');
 
-  useTour('job-detail');
+  useTour('job-detail', !!job);
 
   useEffect(() => {
     if (id) {
@@ -137,6 +139,7 @@ export function JobDetailPage() {
     try {
       const updated = await tailorResume(job.id);
       setJobOutput(updated);
+      queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
       addToast('Resume tailored successfully!', 'success');
     } catch (e: any) {
       if (e?.response?.status === 402 && e.response.data?.error === 'insufficient_credits') {
@@ -167,6 +170,7 @@ export function JobDetailPage() {
           setJobOutput(refreshed);
           setLocalCoverLetter(refreshed.coverLetterText ?? '');
         } catch { /* keep local state */ }
+        queryClient.invalidateQueries({ queryKey: ['billing', 'status'] });
         addToast('Cover letter generated!', 'success');
       },
       (err: any) => {
