@@ -10,8 +10,11 @@ import {
 } from '../../api/interviewPrep';
 import { useAppStore } from '../../store/useAppStore';
 import { useTour } from '../../hooks/useTour';
+import { useTourContext } from '../../context/TourContext';
 import { TakeTourButton } from '../tour/TakeTourButton';
 import CreditCost from '../ui/CreditCost';
+
+const DEMO_CATEGORIES = ['Technical Skills', 'Problem Solving', 'Behavioural'];
 
 interface Props {
   jobId: string;
@@ -23,6 +26,8 @@ type Step = 'idle' | 'selecting' | 'done';
 export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
   const queryClient = useQueryClient();
   const addToast = useAppStore((s) => s.addToast);
+  const { activeTourId, activeStepIndex } = useTourContext();
+  const tourShowingCategorySelector = activeTourId === 'job-prep' && activeStepIndex === 2;
 
   const { data: existingPrep, isLoading } = useQuery({
     queryKey: ['interviewPrep', jobId],
@@ -120,11 +125,11 @@ export function InterviewPrepPanel({ jobId, hasDescription }: Props) {
             </>
           )}
         </div>
-      ) : step === 'selecting' ? (
+      ) : step === 'selecting' || tourShowingCategorySelector ? (
         <div data-tour="category-selector">
           <InterviewCategorySelector
-            categories={suggestedCategories}
-            onGenerate={handleGenerate}
+            categories={step === 'selecting' ? suggestedCategories : DEMO_CATEGORIES}
+            onGenerate={tourShowingCategorySelector ? () => {} : handleGenerate}
             generating={generatingQuestions}
           />
         </div>
