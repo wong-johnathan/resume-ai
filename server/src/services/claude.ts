@@ -732,3 +732,74 @@ Return ONLY valid JSON:
 
   return JSON.parse(response.choices[0].message.content ?? '{}') as SampleJobResult;
 }
+
+// ─── Job Extraction (Chrome Extension) ───────────────────────────────────────
+
+export interface ExtractedJob {
+  company: string;
+  jobTitle: string;
+  location: string | null;
+  salary: string | null;
+  description: string;
+  jobUrl: string;
+}
+
+export async function extractJobFromText(
+  pageText: string,
+  pageUrl: string
+): Promise<ExtractedJob> {
+  // Truncate to 8000 chars to keep tokens reasonable
+  const truncated = pageText.slice(0, 8000);
+
+  const prompt = `Extract job posting details from the following webpage text.
+Return ONLY a JSON object — no markdown fences, no explanation.
+
+If this page is NOT a job posting, return exactly: {"isJobPosting":false}
+
+If it IS a job posting, return:
+{
+  "isJobPosting": true,
+  "company": "Company name (string)",
+  "jobTitle": "Job title (string)",
+  "location": "Location or null if not found",
+  "salary": "Salary range or null if not found",
+  "description": "Full job description text (string)",
+  "jobUrl": "${pageUrl}"
+}
+
+Page URL: ${pageUrl}
+Page text:
+${truncated}`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    max_tokens: 1000,
+    messages: [{ role: 'user', content: prompt }],
+    response_format: { type: 'json_object' },
+  });
+
+  const raw = response.choices[0]?.message?.content ?? '';
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('AI returned invalid JSON');
+  }
+
+  if (!parsed.isJobPosting) {
+    throw Object.assign(new Error('Not a job posting'), { code: 'NOT_JOB_POSTING' });
+  }
+
+  if (!parsed.company || !parsed.jobTitle || !parsed.description) {
+    throw new Error('AI returned incomplete job data');
+  }
+
+  return {
+    company: parsed.company,
+    jobTitle: parsed.jobTitle,
+    location: parsed.location ?? null,
+    salary: parsed.salary ?? null,
+    description: parsed.description,
+    jobUrl: parsed.jobUrl ?? pageUrl,
+  };
+}
