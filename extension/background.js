@@ -7,15 +7,22 @@ chrome.action.onClicked.addListener(async (tab) => {
   chrome.action.setBadgeText({ text: '', tabId: tab.id });
 
   try {
-    // Inject content script into the active tab
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js'],
-    });
-
-    // Ask content script for page text
-    const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_TEXT' });
-    const { pageText, pageUrl } = response;
+    // Try to message the content script first (already injected from a previous click)
+    let pageText, pageUrl;
+    try {
+      const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_TEXT' });
+      pageText = response.pageText;
+      pageUrl = response.pageUrl;
+    } catch {
+      // Content script not yet injected — inject it now and try again
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['content.js'],
+      });
+      const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_PAGE_TEXT' });
+      pageText = response.pageText;
+      pageUrl = response.pageUrl;
+    }
 
     // Call server — session cookie is sent automatically (credentials: 'include')
     const res = await fetch(`${SERVER_URL}/api/external/jobs`, {
@@ -64,7 +71,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 function showNotification(title, message) {
   chrome.notifications.create({
     type: 'basic',
-    iconUrl: 'https://www.google.com/favicon.ico', // Temporary placeholder — replace with extension icon path once icons/ added
+    iconUrl: 'icons/icon128.png',
     title,
     message,
   });
