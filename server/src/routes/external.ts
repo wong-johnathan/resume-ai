@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { prisma } from '../config/prisma';
 import { requireAuth, getUser } from '../middleware/requireAuth';
 import { requireSubscription } from '../middleware/requireSubscription';
@@ -10,8 +11,16 @@ import { extractJobFromText } from '../services/claude';
 const router = Router();
 router.use(requireAuth);
 
+const aiRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req: any) => getUser(req).id,
+  message: { error: 'Too many AI requests, please wait 15 minutes before trying again.' },
+});
+router.use(aiRateLimit);
+
 const saveJobSchema = z.object({
-  pageText: z.string().min(1),
+  pageText: z.string().min(1).max(100000),
   pageUrl: z.string().url(),
 });
 
@@ -30,9 +39,8 @@ router.post('/', requireSubscription, validateBody(saveJobSchema), async (req, r
       return next(err);
     }
 
-    let job: any;
-    await prisma.$transaction(async (tx: any) => {
-      job = await tx.jobApplication.create({
+    const job = await prisma.$transaction(async (tx: any) => {
+      const created = await tx.jobApplication.create({
         data: {
           userId,
           company: extracted.company,
@@ -44,7 +52,8 @@ router.post('/', requireSubscription, validateBody(saveJobSchema), async (req, r
           status: 'SAVED',
         },
       });
-      await tx.jobOutput.create({ data: { jobId: job.id, userId } });
+      await tx.jobOutput.create({ data: { jobId: created.id, userId } });
+      return created;
     });
 
     logActivity(userId, ActivityAction.JOB_CREATED, {
