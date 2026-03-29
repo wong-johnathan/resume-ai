@@ -20,6 +20,7 @@ import interviewPrepRouter from './routes/interviewPrep';
 import toursRouter from './routes/tours';
 import adminRouter from './routes/admin/index';
 import billingRouter from './routes/billing';
+import externalRouter from './routes/external';
 
 const PgSession = connectPgSimple(session);
 
@@ -68,6 +69,7 @@ export function createApp() {
   // Multi-origin CORS: allow both the main client and admin panel
   const allowedOrigins = [env.CLIENT_URL];
   if (env.ADMIN_URL) allowedOrigins.push(env.ADMIN_URL);
+  if (env.EXTENSION_ORIGIN) allowedOrigins.push(env.EXTENSION_ORIGIN);
   app.use(cors({ origin: allowedOrigins, credentials: true }));
 
   app.use(morgan('dev'));
@@ -106,6 +108,7 @@ export function createApp() {
   app.use('/api/tours', toursRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api/billing', billingRouter);
+  app.use('/api/external', externalRouter);
 
   app.use(errorHandler);
 
