@@ -20,6 +20,7 @@ const envSchema = z.object({
   ADMIN_GOOGLE_CLIENT_SECRET: z.string().optional(),
   ADMIN_GOOGLE_CALLBACK_URL: z.string().optional(),
   ADMIN_URL: z.string().optional(),
+  EXTENSION_ORIGIN: z.string().optional(),
   STRIPE_SECRET_KEY: z.string().min(1),
   STRIPE_WEBHOOK_SECRET: z.string().min(1),
   STRIPE_PRICE_MONTHLY: z.string().min(1),
